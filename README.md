@@ -1,2 +1,2 @@
-# Task-Manager-Bot-
+# MyTaskBot
 Task Manager Bot for Telegram
