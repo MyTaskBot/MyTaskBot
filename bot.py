@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(4)
 
-reply_keyboard = [['Task', 'Target'], ['Cancel']]
+reply_keyboard = [['Task', 'Target'], ['Show Task', 'Show Target'], ['Cancel']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 users = dict()
@@ -122,7 +122,22 @@ def get_target_text(bot, update, user_data):
     update.message.reply_text("OK, I will memorise it")
     return ConversationHandler.END
 
-    
+
+ def show_task(bot, update):
+	msg = '{icon} You tasks, {user_name} {last_name}!'.format(icon = '\U000023F0', 
+													user_name = update.message.from_user.first_name, 
+													last_name = update.message.from_user.last_name)
+	update.message.reply_text(msg)
+	return ConversationHandler.END
+	
+def show_target(bot, update):
+	msg = '{icon} You targets, {user_name} {last_name}!'.format(icon = '\U000023F3', 
+													user_name = update.message.from_user.first_name, 
+													last_name = update.message.from_user.last_name)
+	update.message.reply_text(msg)
+	return ConversationHandler.END
+
+
 def cancel(bot, update):
     #some text for user 
     return ConversationHandler.END
@@ -144,6 +159,10 @@ def main():
                                     add_task, pass_user_data=False),
                        RegexHandler('^Target$',
                                     add_target, pass_user_data=False),
+                       RegexHandler('^Show Task$',
+                                    show_task, pass_user_data=False),
+                       RegexHandler('^Show Target$',
+                                    show_target, pass_user_data=False),
                        ],
 
             GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
