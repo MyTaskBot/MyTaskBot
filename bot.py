@@ -2,8 +2,12 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, RegexHandler, MessageHandler, Filters
 
 import logging
-import config
-import datetime 
+import datetime
+
+# our files
+import config 
+from classes import *
+
 
 
 # Enable logging
@@ -29,8 +33,7 @@ def help(bot, update):
 
 
 def alarm(bot, job):
-    """Function to send the alarm message"""
-    bot.sendMessage(job.context, text='Beep!')
+    bot.sendMessage(job.context[0], text=job.context[2] + ", remind you about your task:\n" + job.context[1])
 
 
 def add(bot, update):
@@ -43,21 +46,60 @@ def add(bot, update):
 
 def add_task(bot, update):
     update.message.reply_text(
-        "Write date and time of Task in form DD.MM.YY HH:MM"
+        "Write date and time of Task in form DD.MM.YY HH:MM\n"
         "for example 12.12.16 4:20")
 
     return GETTING_DATE_AND_TIME    
 
 
 def get_date_and_time(bot, update, user_data):
-    # processing lines and memorization time if error return SOME_CONDITION
-    update.message.reply_text("Write your task")
+    task = Task()
+    print('\n'+update.message.text+'\n')
+    print(type(update.message.text))
+    try:
+        task.set_date_and_time(update.message.text)
+    except NameError:
+        update.message.reply_text(
+            "You made a mistake, please try again\n\n"
+            "Write date and time of Task in form DD.MM.YY HH:MM\n"
+            "for example 12.12.16 4:20")
+        del(task)
+        return GETTING_DATE_AND_TIME
+    if (task.datetime - datetime.datetime.now()).days < 0:
+         update.message.reply_text(
+         'Sorry we can not go back to future!\n\n'
+         'Write date and time of Task in form DD.MM.YY HH:MM\n'
+         'for example 12.12.16 4:20')
+         del(task)
+         return GETTING_DATE_AND_TIME
+    user_data['task'] = task
+    update.message.reply_text("Write your task:")
+    del(task)
     return GETTING_TASK_TEXT
   
     
-def get_task_text(bot, update, user_data):
-    #get text from user? memoize it and add add job 
-    update.message.reply_text("OK, i will remind you to do this task!")
+def get_task_text(bot, update, user_data, job_queue):
+    task = user_data['task']
+    task.set_text(update.message.text)  
+    
+    user_id = update.message.from_user.id
+    
+    if user_id not in users:
+        user = User(update.message.from_user.first_name, update.message.chat_id)
+        users[user_id] = user
+    else: 
+        user = users[user_id]
+    user.add_task(task)
+    user_data.clear()
+    try:
+        dt = (task.datetime - datetime.datetime.now())
+        delta = dt.days*24*60*60 + dt.seconds
+        job = Job(alarm, delta, repeat = False, context = (user.chat_id, task.text, user.name))
+        job_queue.put(job)
+        update.message.reply_text("OK, i will remind you to do this task!")
+    except (IndexError, ValueError):
+        update.message.reply_text('Sorry, we have an error')
+            
     return ConversationHandler.END
 
 
@@ -68,7 +110,15 @@ def add_target(bot, update):
 
 
 def get_target_text(bot, update, user_data):
-    #get text from user? memoize it and add add to user.targets  
+    
+    user_id = update.message.from_user.id
+    
+    if user_id not in users:
+        user = User(update.message.from_user.first_name, update.message.chat_id)
+    else: 
+        user = users[user_id]
+    target = Target(update.message.text)
+    user.add_target(target)
     update.message.reply_text("OK, I will memorise it")
     return ConversationHandler.END
 
@@ -103,7 +153,7 @@ def main():
                             
             GETTING_TASK_TEXT: [MessageHandler(Filters.text,
                                            get_task_text,
-                                           pass_user_data=True),
+                                           pass_user_data=True, pass_job_queue=True),
                             ],
            
 

@@ -1,24 +1,31 @@
 import datetime 
 
 class Task(object):
-    def __init__(self, date, time, task_text):
-        self.date = date
-        self.time = time
+    def __init__(self, datetime = None, task_text = None):
+        self.datetime = datetime
         self.task_text = task_text
         
-    def get_date_and_time(self, string):
+    def set_date_and_time(self, string):
+        assert type(string) != type(str), "Text must be not null"
         try:
-            tmp = datetime.datetime.strptime(string, '%d.%m.%y %H:%M')
-            self.date = tmp.date()
-            self.time = tmp.time()
+            self.datetime = datetime.datetime.strptime(string, '%d.%m.%y %H:%M')
         except ValueError:
             raise NameError('Convert string datetime to value data and time!')
+    
+    def set_text(self, text):
+         assert type(text) != type(str), "Text must be not null"  
+         self.text = text
         
 
 class Target(object):
-    def __init__(self, text):
+    def __init__(self, text = None):
         self.text = text
+    
+    def set_text(self, text):
+        assert type(text) != type(str), "Text must be not null"
+        self.text = text; 
 
+        
 class User(object):
     def __init__(self, name, chat_id):
         self.name = name
@@ -26,11 +33,14 @@ class User(object):
         self.tasks = list()
         self.targets = list()
         
-    def add_task(self, task = None):
-        assert task != None, "Task in not defined" # think about types !!!
+    def change_name(self, new_name):
+        assert type(new_name) != type(str), "New name must be not null"
+        self.name = new_name
+        
+    def add_task(self, task):
+        assert type(task) != type(str), "Task in not defined" # think about types !!!
         self.tasks.append(task)
         
-    def add_terget(self, target = None):
+    def add_target(self, target):
         assert target != None, "Target in not defined" # think about types !!!
         self.targets.append(target)
-
