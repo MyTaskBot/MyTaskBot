@@ -110,12 +110,12 @@ def add_target(bot, update):
 
 
 def get_target_text(bot, update, user_data):
-    
+
     user_id = update.message.from_user.id
-    
+
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
-    else: 
+    else:
         user = users[user_id]
     target = Target(update.message.text)
     user.add_target(target)
@@ -123,23 +123,23 @@ def get_target_text(bot, update, user_data):
     return ConversationHandler.END
 
 
- def show_task(bot, update):
-	msg = '{icon} You tasks, {user_name} {last_name}!'.format(icon = '\U000023F0', 
+def show_task(bot, update):
+    msg = '{icon} You tasks, {user_name} {last_name}!'.format(icon = '\U000023F0',
 													user_name = update.message.from_user.first_name, 
 													last_name = update.message.from_user.last_name)
-	update.message.reply_text(msg)
-	return ConversationHandler.END
+    update.message.reply_text(msg)
+    return ConversationHandler.END
 	
 def show_target(bot, update):
-	msg = '{icon} You targets, {user_name} {last_name}!'.format(icon = '\U000023F3', 
+    msg = '{icon} You targets, {user_name} {last_name}!'.format(icon = '\U000023F3',
 													user_name = update.message.from_user.first_name, 
 													last_name = update.message.from_user.last_name)
-	update.message.reply_text(msg)
-	return ConversationHandler.END
+    update.message.reply_text(msg)
+    return ConversationHandler.END
 
 
 def cancel(bot, update):
-    #some text for user 
+    #some text for user
     return ConversationHandler.END
 
 
