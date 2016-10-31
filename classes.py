@@ -23,7 +23,7 @@ class Target(object):
     
     def set_text(self, text):
         assert type(text) != type(str), "Text must be not null"
-        self.text = text; 
+        self.text = text
 
         
 class User(object):
@@ -42,5 +42,5 @@ class User(object):
         self.tasks.append(task)
         
     def add_target(self, target):
-        assert target != None, "Target in not defined" # think about types !!!
+        assert type(target) != type(str), "Target in not defined" # think about types !!!
         self.targets.append(target)
