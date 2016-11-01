@@ -231,9 +231,9 @@ def main():
         entry_points=[CommandHandler('show', show)],
 
         states={
-            CHOOSING: [RegexHandler('^Show Task$',
+            CHOOSING: [RegexHandler('^Show Tasks$',
                                     show_task, pass_user_data=False),
-                       RegexHandler('^Show Target$',
+                       RegexHandler('^Show Targets$',
                                     show_target, pass_user_data=False),
                        ],
 
