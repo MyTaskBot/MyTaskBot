@@ -41,18 +41,18 @@ class TestSequenceFunctions(unittest.TestCase):
             User.change_name(User('Sviat', 2), None)
 
     def test_add_task(self):
-            self.assertEqual(User.add_task(User('Sviat', 2), Task()), None)
-            with self.assertRaisesRegex(AssertionError, 'task must be Task'):
-                User.add_task(User('Sviat', 2), 456785455344444443433434433443)
-            with self.assertRaisesRegex(AssertionError, 'task must be not null'):
-                User.add_task(User('Sviat', 2), None)
+        self.assertEqual(User.add_task(User('Sviat', 2), Task()), None)
+        with self.assertRaisesRegex(AssertionError, 'task must be Task'):
+            User.add_task(User('Sviat', 2), 456785455344444443433434433443)
+        with self.assertRaisesRegex(AssertionError, 'task must be not null'):
+            User.add_task(User('Sviat', 2), None)
 
     def test_add_target(self):
-                self.assertEqual(User.add_target(User('Sviat', 2), Target()), None)
-                with self.assertRaisesRegex(AssertionError, 'target must be Target'):
-                    User.add_target(User('Sviat', 2), 456785455344444443433434433443)
-                with self.assertRaisesRegex(AssertionError, 'target must be not null'):
-                    User.add_target(User('Sviat', 2), None)
+        self.assertEqual(User.add_target(User('Sviat', 2), Target()), None)
+        with self.assertRaisesRegex(AssertionError, 'target must be Target'):
+            User.add_target(User('Sviat', 2), 456785455344444443433434433443)
+        with self.assertRaisesRegex(AssertionError, 'target must be not null'):
+            User.add_target(User('Sviat', 2), None)
 
 
 

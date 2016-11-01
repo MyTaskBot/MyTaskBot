@@ -45,7 +45,7 @@ class User(object):
     def add_task(self, task):
         assert task is not None, "task must be not null"
         assert type(task) == Task, "task must be Task"
-        print ('\n\n {text}\n\n'.format(text = task.text))
+        # print ('\n\n {text}\n\n'.format(text = task.text))
         self.tasks.append(task)
         
     def add_target(self, target):
