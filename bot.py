@@ -18,18 +18,25 @@ logger = logging.getLogger(__name__)
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(4)
 
-reply_keyboard = [['Task', 'Target'], ['Show Task', 'Show Target'], ['Cancel']]
-markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
+add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
+
+show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
+show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
+
 
 users = dict()
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
+    user_id = update.message.from_user.id
+    if user_id not in users:
+        users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
     update.message.reply_text('Hi! Use /help to get help')
 
 
 def help(bot, update):
-    update.message.reply_text('---Help---\n /add - to add new Task or \n ')
+    update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
 
 
 def alarm(bot, job):
@@ -39,7 +46,15 @@ def alarm(bot, job):
 def add(bot, update):
     update.message.reply_text(
         "What do you want to add?",
-        reply_markup=markup)
+        reply_markup=add_markup)
+
+    return CHOOSING
+
+
+def show(bot, update):
+    update.message.reply_text(
+        "What do you want me to show?",
+        reply_markup=show_markup)
 
     return CHOOSING
 
@@ -127,6 +142,22 @@ def show_task(bot, update):
     msg = '{icon} You tasks, {user_name} {last_name}!'.format(icon = '\U000023F0',
 													user_name = update.message.from_user.first_name, 
 													last_name = update.message.from_user.last_name)
+    user_id = update.message.from_user.id
+    if user_id in users:
+        user = users[user_id]
+        if len(user.tasks) == 0: 
+            msg += '\n You haven\'t got Tasks!'
+        else:
+            i = 0 
+            for task in user.tasks:
+                i += 1
+                msg += '\n {ind}: {data} - {text}'.format(ind = i,
+                                                    data = task.datetime, 
+                                                    text = task.text)
+
+    else:  
+        #этот код пока никогда не выполняется  
+        msg += "\n FATAL ERROR, admin not found " # Не смотрите сюда, мы были не в себе 
     update.message.reply_text(msg)
     return ConversationHandler.END
 	
@@ -134,8 +165,24 @@ def show_target(bot, update):
     msg = '{icon} You targets, {user_name} {last_name}!'.format(icon = '\U000023F3',
 													user_name = update.message.from_user.first_name, 
 													last_name = update.message.from_user.last_name)
+    user_id = update.message.from_user.id
+    if user_id in users:
+        user = users[user_id]
+        if len(user.targets) == 0: 
+            msg += '\n You haven\'t got Tasks!'
+        else:
+            i = 0 
+            for target in user.targets:
+                i += 1
+                msg += '\n {ind}: {text}'.format(ind = i,
+                                                    text = target.text)
+
+    else:  
+        #этот код пока никогда не выполняется  
+        msg += "\n FATAL ERROR, admin not found " # Не смотрите сюда, мы были не в себе 
     update.message.reply_text(msg)
     return ConversationHandler.END
+    
 
 
 def cancel(bot, update):
@@ -151,7 +198,7 @@ def main():
     updater = Updater(config.TOKEN)
     
     dp = updater.dispatcher
-    conv_handler = ConversationHandler(
+    add_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('add', add)],
 
         states={
@@ -159,10 +206,6 @@ def main():
                                     add_task, pass_user_data=False),
                        RegexHandler('^Target$',
                                     add_target, pass_user_data=False),
-                       RegexHandler('^Show Task$',
-                                    show_task, pass_user_data=False),
-                       RegexHandler('^Show Target$',
-                                    show_target, pass_user_data=False),
                        ],
 
             GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
@@ -184,8 +227,23 @@ def main():
 
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
+    show_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('show', show)],
 
-    dp.add_handler(conv_handler)
+        states={
+            CHOOSING: [RegexHandler('^Show Task$',
+                                    show_task, pass_user_data=False),
+                       RegexHandler('^Show Target$',
+                                    show_target, pass_user_data=False),
+                       ],
+
+        },
+
+        fallbacks=[RegexHandler('^Cancel$', cancel)]
+    )
+
+    dp.add_handler(show_conv_handler)
+    dp.add_handler(add_conv_handler)
     dp.add_handler(CommandHandler("start", start))  
     dp.add_handler(CommandHandler("help", help))
 

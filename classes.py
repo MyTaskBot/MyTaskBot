@@ -1,9 +1,9 @@
 import datetime
 
 class Task(object):
-    def __init__(self, datetime = None, task_text = None):
+    def __init__(self, datetime = None, text = None):
         self.datetime = datetime
-        self.task_text = task_text
+        self.text = text
         
     def set_date_and_time(self, string):
         assert string is not None, "Text must be not null"
@@ -17,6 +17,7 @@ class Task(object):
         assert text is not None, "Text must be not null"
         assert type(text) == str, "Text must be string"
         self.text = text
+
         
 
 class Target(object):
@@ -44,6 +45,7 @@ class User(object):
     def add_task(self, task):
         assert task is not None, "task must be not null"
         assert type(task) == Task, "task must be Task"
+        print ('\n\n {text}\n\n'.format(text = task.text))
         self.tasks.append(task)
         
     def add_target(self, target):
