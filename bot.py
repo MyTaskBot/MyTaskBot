@@ -2,72 +2,104 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, RegexHandler, MessageHandler, Filters
 
 import logging
-import datetime
 
 # our files
 import config 
 from classes import *
 
 
-
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG
+)
 
 logger = logging.getLogger(__name__)
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(4)
 
-add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
-add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
+add_reply_keyboard = [
+    ['Task', 'Target'],
+    ['Cancel']
+]
 
-show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
-show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
+add_markup = ReplyKeyboardMarkup(
+    add_reply_keyboard,
+    one_time_keyboard=True
+)
+
+show_reply_keyboard = [
+    ['Show Tasks', 'Show Targets'],
+    ['Cancel']
+]
+
+show_markup = ReplyKeyboardMarkup(
+    show_reply_keyboard,
+    one_time_keyboard=True
+)
 
 
 users = dict()
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
-def start(bot, update):
+
+
+def start_cmd(bot, update):
+    assert bot is not None, "bot is None!"
     user_id = update.message.from_user.id
     if user_id not in users:
-        users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
+        users[user_id] = User(
+            update.message.from_user.first_name,
+            update.message.chat_id
+        )
     update.message.reply_text('Hi! Use /help to get help')
 
 
-def help(bot, update):
-    update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
+def help_cmd(bot, update):
+    assert bot is not None, "bot is None!"
+    update.message.reply_text(
+        '---Help---\n'
+        ' /add - to add new Task or Target\n'
+        ' /show - to see your Tasks or Targets\n'
+    )
 
 
 def alarm(bot, job):
-    bot.sendMessage(job.context[0], text=job.context[2] + ", remind you about your task:\n" + job.context[1])
+    bot.sendMessage(
+        job.context[0],
+        text=job.context[2] + ", remind you about your task:\n" + job.context[1]
+    )
 
 
 def add(bot, update):
+    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "What do you want to add?",
-        reply_markup=add_markup)
-
+        reply_markup=add_markup
+    )
     return CHOOSING
 
 
 def show(bot, update):
+    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "What do you want me to show?",
-        reply_markup=show_markup)
-
+        reply_markup=show_markup
+    )
     return CHOOSING
 
 
 def add_task(bot, update):
+    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "Write date and time of Task in form DD.MM.YY HH:MM\n"
-        "for example 12.12.16 4:20")
-
+        "for example 12.12.16 4:20"
+    )
     return GETTING_DATE_AND_TIME    
 
 
 def get_date_and_time(bot, update, user_data):
+    assert bot is not None, "bot is None!"
     task = Task()
     print('\n'+update.message.text+'\n')
     print(type(update.message.text))
@@ -77,30 +109,36 @@ def get_date_and_time(bot, update, user_data):
         update.message.reply_text(
             "You made a mistake, please try again\n\n"
             "Write date and time of Task in form DD.MM.YY HH:MM\n"
-            "for example 12.12.16 4:20")
-        del(task)
+            "for example 12.12.16 4:20"
+        )
+        # del(task)
         return GETTING_DATE_AND_TIME
     if (task.datetime - datetime.datetime.now()).days < 0:
-         update.message.reply_text(
-         'Sorry we can not go back to future!\n\n'
-         'Write date and time of Task in form DD.MM.YY HH:MM\n'
-         'for example 12.12.16 4:20')
-         del(task)
-         return GETTING_DATE_AND_TIME
+        update.message.reply_text(
+            'Sorry we can not go back to future!\n\n'
+            'Write date and time of Task in form DD.MM.YY HH:MM\n'
+            'for example 12.12.16 4:20'
+        )
+        # del(task)
+        return GETTING_DATE_AND_TIME
     user_data['task'] = task
     update.message.reply_text("Write your task:")
-    del(task)
+    # del(task)
     return GETTING_TASK_TEXT
   
     
 def get_task_text(bot, update, user_data, job_queue):
+    assert bot is not None, "bot is None!"
     task = user_data['task']
     task.set_text(update.message.text)  
     
     user_id = update.message.from_user.id
     
     if user_id not in users:
-        user = User(update.message.from_user.first_name, update.message.chat_id)
+        user = User(
+            update.message.from_user.first_name,
+            update.message.chat_id
+        )
         users[user_id] = user
     else: 
         user = users[user_id]
@@ -109,7 +147,11 @@ def get_task_text(bot, update, user_data, job_queue):
     try:
         dt = (task.datetime - datetime.datetime.now())
         delta = dt.days*24*60*60 + dt.seconds
-        job = Job(alarm, delta, repeat = False, context = (user.chat_id, task.text, user.name))
+        job = Job(alarm,
+                  delta,
+                  repeat=False,
+                  context=(user.chat_id, task.text, user.name)
+                  )
         job_queue.put(job)
         update.message.reply_text("OK, i will remind you to do this task!")
     except (IndexError, ValueError):
@@ -119,13 +161,15 @@ def get_task_text(bot, update, user_data, job_queue):
 
 
 def add_target(bot, update):
+    assert bot is not None, "bot is None!"
     update.message.reply_text(
-        "Give me yout Target")   
+        "Give me yout Target"
+    )
     return GETTING_TARGET
 
 
-def get_target_text(bot, update, user_data):
-
+def get_target_text(bot, update):
+    assert bot is not None, "bot is None!"
     user_id = update.message.from_user.id
 
     if user_id not in users:
@@ -139,9 +183,12 @@ def get_target_text(bot, update, user_data):
 
 
 def show_task(bot, update):
-    msg = '{icon} You tasks, {user_name} {last_name}!'.format(icon = '\U000023F0',
-													user_name = update.message.from_user.first_name, 
-													last_name = update.message.from_user.last_name)
+    assert bot is not None, "bot is None!"
+    msg = '{icon} You tasks, {user_name} {last_name}!'.format(
+        icon='\U000023F0',
+        user_name=update.message.from_user.first_name,
+        last_name=update.message.from_user.last_name
+    )
     user_id = update.message.from_user.id
     if user_id in users:
         user = users[user_id]
@@ -151,20 +198,27 @@ def show_task(bot, update):
             i = 0 
             for task in user.tasks:
                 i += 1
-                msg += '\n {ind}: {data} - {text}'.format(ind = i,
-                                                    data = task.datetime, 
-                                                    text = task.text)
+                msg += '\n {ind}: {data} - {text}'.format(
+                    ind=i,
+                    data=task.datetime,
+                    text=task.text
+                )
 
     else:  
-        #этот код пока никогда не выполняется  
-        msg += "\n FATAL ERROR, admin not found " # Не смотрите сюда, мы были не в себе 
+        # этот код пока никогда не выполняется
+        # Не смотрите сюда, мы были не в себе
+        msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return ConversationHandler.END
-	
+
+
 def show_target(bot, update):
-    msg = '{icon} You targets, {user_name} {last_name}!'.format(icon = '\U000023F3',
-													user_name = update.message.from_user.first_name, 
-													last_name = update.message.from_user.last_name)
+    assert bot is not None, "bot is None!"
+    msg = '{icon} You targets, {user_name} {last_name}!'.format(
+        icon='\U000023F3',
+        user_name=update.message.from_user.first_name,
+        last_name=update.message.from_user.last_name
+    )
     user_id = update.message.from_user.id
     if user_id in users:
         user = users[user_id]
@@ -174,24 +228,29 @@ def show_target(bot, update):
             i = 0 
             for target in user.targets:
                 i += 1
-                msg += '\n {ind}: {text}'.format(ind = i,
-                                                    text = target.text)
+                msg += '\n {ind}: {text}'.format(
+                    ind=i,
+                    text=target.text
+                )
 
     else:  
-        #этот код пока никогда не выполняется  
-        msg += "\n FATAL ERROR, admin not found " # Не смотрите сюда, мы были не в себе 
+        # этот код пока никогда не выполняется
+        # Не смотрите сюда, мы были не в себе
+        msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return ConversationHandler.END
     
 
-
 def cancel(bot, update):
-    #some text for user
+    assert bot is not None, "bot is None!"
+    assert update is not None, "update is not None!"
+    # some text for user
     return ConversationHandler.END
 
 
-def error(bot, update, error):
-    logger.warn('Update "%s" caused error "%s"' % (update, error))
+def error(bot, update, error_str):
+    assert bot is not None, "bot is None!"
+    logger.warn('Update "%s" caused error "%s"' % (update, error_str))
 
 
 def main():
@@ -200,53 +259,56 @@ def main():
     dp = updater.dispatcher
     add_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('add', add)],
-
         states={
             CHOOSING: [RegexHandler('^Task$',
-                                    add_task, pass_user_data=False),
+                                    add_task,
+                                    pass_user_data=False
+                                    ),
                        RegexHandler('^Target$',
-                                    add_target, pass_user_data=False),
+                                    add_target,
+                                    pass_user_data=False
+                                    ),
                        ],
-
             GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
-                                           get_date_and_time,
-                                           pass_user_data=True),
-                            ],
-                            
+                                                   get_date_and_time,
+                                                   pass_user_data=True
+                                                   ),
+                                    ],
             GETTING_TASK_TEXT: [MessageHandler(Filters.text,
-                                           get_task_text,
-                                           pass_user_data=True, pass_job_queue=True),
-                            ],
-           
-
+                                               get_task_text,
+                                               pass_user_data=True,
+                                               pass_job_queue=True
+                                               ),
+                                ],
             GETTING_TARGET: [MessageHandler(Filters.text,
-                                          get_target_text,
-                                          pass_user_data=True),
-                           ],
+                                            get_target_text,
+                                            pass_user_data=True
+                                            ),
+                             ],
         },
-
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
     show_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('show', show)],
-
         states={
             CHOOSING: [RegexHandler('^Show Tasks$',
-                                    show_task, pass_user_data=False),
+                                    show_task,
+                                    pass_user_data=False
+                                    ),
                        RegexHandler('^Show Targets$',
-                                    show_target, pass_user_data=False),
+                                    show_target,
+                                    pass_user_data=False
+                                    ),
                        ],
 
         },
-
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
 
     dp.add_handler(show_conv_handler)
     dp.add_handler(add_conv_handler)
-    dp.add_handler(CommandHandler("start", start))  
-    dp.add_handler(CommandHandler("help", help))
-
+    dp.add_handler(CommandHandler("start", start_cmd))
+    dp.add_handler(CommandHandler("help", help_cmd))
 
     # log all errors
     dp.add_error_handler(error)
