@@ -55,6 +55,5 @@ class TestSequenceFunctions(unittest.TestCase):
             User.add_target(User('Sviat', 2), None)
 
 
-
 suite = unittest.TestLoader().loadTestsFromTestCase(TestSequenceFunctions)
 unittest.TextTestRunner(verbosity=2).run(suite)
