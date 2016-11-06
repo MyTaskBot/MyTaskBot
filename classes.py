@@ -1,8 +1,9 @@
 import datetime
 
+
 class Task(object):
-    def __init__(self, datetime = None, text = None):
-        self.datetime = datetime
+    def __init__(self, dtime=None, text=None):
+        self.datetime = dtime
         self.text = text
         
     def set_date_and_time(self, string):
@@ -18,10 +19,9 @@ class Task(object):
         assert type(text) == str, "Text must be string"
         self.text = text
 
-        
 
 class Target(object):
-    def __init__(self, text = None):
+    def __init__(self, text=None):
         self.text = text
     
     def set_text(self, text):
