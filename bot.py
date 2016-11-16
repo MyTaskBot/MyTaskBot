@@ -2,6 +2,7 @@ from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, RegexHandler, MessageHandler, Filters
 
 import logging
+import datetime
 
 # our files
 import config 
@@ -9,34 +10,18 @@ from classes import *
 
 
 # Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
-)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(4)
 
-add_reply_keyboard = [
-    ['Task', 'Target'],
-    ['Cancel']
-]
+add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
+add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
 
-add_markup = ReplyKeyboardMarkup(
-    add_reply_keyboard,
-    one_time_keyboard=True
-)
-
-show_reply_keyboard = [
-    ['Show Tasks', 'Show Targets'],
-    ['Cancel']
-]
-
-show_markup = ReplyKeyboardMarkup(
-    show_reply_keyboard,
-    one_time_keyboard=True
-)
+show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
+show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 
 
 users = dict()
@@ -45,52 +30,37 @@ users = dict()
 
 
 def start_cmd(bot, update):
-    assert bot is not None, "bot is None!"
     user_id = update.message.from_user.id
     if user_id not in users:
-        users[user_id] = User(
-            update.message.from_user.first_name,
-            update.message.chat_id
-        )
+        users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
     update.message.reply_text('Hi! Use /help to get help')
 
 
 def help_cmd(bot, update):
-    assert bot is not None, "bot is None!"
-    update.message.reply_text(
-        '---Help---\n'
-        ' /add - to add new Task or Target\n'
-        ' /show - to see your Tasks or Targets\n'
-    )
+    update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
 
 
 def alarm(bot, job):
-    bot.sendMessage(
-        job.context[0],
-        text=job.context[2] + ", remind you about your task:\n" + job.context[1]
-    )
+    bot.sendMessage(job.context[0], text=job.context[2] + ", remind you about your task:\n" + job.context[1])
 
 
 def add(bot, update):
-    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "What do you want to add?",
-        reply_markup=add_markup
-    )
+        reply_markup=add_markup)
+
     return CHOOSING
 
 
 def show(bot, update):
-    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "What do you want me to show?",
-        reply_markup=show_markup
-    )
+        reply_markup=show_markup)
+
     return CHOOSING
 
 
 def add_task(bot, update):
-    assert bot is not None, "bot is None!"
     update.message.reply_text(
         "Write date and time of Task in form DD.MM.YY HH:MM\n"
         "for example 12.12.16 4:20"
@@ -99,7 +69,6 @@ def add_task(bot, update):
 
 
 def get_date_and_time(bot, update, user_data):
-    assert bot is not None, "bot is None!"
     task = Task()
     print('\n'+update.message.text+'\n')
     print(type(update.message.text))
@@ -111,7 +80,7 @@ def get_date_and_time(bot, update, user_data):
             "Write date and time of Task in form DD.MM.YY HH:MM\n"
             "for example 12.12.16 4:20"
         )
-        # del(task)
+        del task
         return GETTING_DATE_AND_TIME
     if (task.datetime - datetime.datetime.now()).days < 0:
         update.message.reply_text(
@@ -119,26 +88,22 @@ def get_date_and_time(bot, update, user_data):
             'Write date and time of Task in form DD.MM.YY HH:MM\n'
             'for example 12.12.16 4:20'
         )
-        # del(task)
+        del task
         return GETTING_DATE_AND_TIME
     user_data['task'] = task
     update.message.reply_text("Write your task:")
-    # del(task)
+    del task
     return GETTING_TASK_TEXT
-  
-    
+
+
 def get_task_text(bot, update, user_data, job_queue):
-    assert bot is not None, "bot is None!"
     task = user_data['task']
     task.set_text(update.message.text)  
     
     user_id = update.message.from_user.id
     
     if user_id not in users:
-        user = User(
-            update.message.from_user.first_name,
-            update.message.chat_id
-        )
+        user = User(update.message.from_user.first_name, update.message.chat_id)
         users[user_id] = user
     else: 
         user = users[user_id]
@@ -156,7 +121,6 @@ def get_task_text(bot, update, user_data, job_queue):
         update.message.reply_text("OK, i will remind you to do this task!")
     except (IndexError, ValueError):
         update.message.reply_text('Sorry, we have an error')
-            
     return ConversationHandler.END
 
 
@@ -248,9 +212,8 @@ def cancel(bot, update):
     return ConversationHandler.END
 
 
-def error(bot, update, error_str):
-    assert bot is not None, "bot is None!"
-    logger.warn('Update "%s" caused error "%s"' % (update, error_str))
+def error(bot, update, err):
+    logger.warn('Update "%s" caused error "%s"' % (update, err))
 
 
 def main():
@@ -259,16 +222,14 @@ def main():
     dp = updater.dispatcher
     add_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('add', add)],
+
         states={
             CHOOSING: [RegexHandler('^Task$',
-                                    add_task,
-                                    pass_user_data=False
-                                    ),
+                                    add_task, pass_user_data=False),
                        RegexHandler('^Target$',
-                                    add_target,
-                                    pass_user_data=False
-                                    ),
+                                    add_target, pass_user_data=False),
                        ],
+
             GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
                                                    get_date_and_time,
                                                    pass_user_data=True
@@ -286,22 +247,21 @@ def main():
                                             ),
                              ],
         },
+
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
     show_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('show', show)],
+
         states={
             CHOOSING: [RegexHandler('^Show Tasks$',
-                                    show_task,
-                                    pass_user_data=False
-                                    ),
+                                    show_task, pass_user_data=False),
                        RegexHandler('^Show Targets$',
-                                    show_target,
-                                    pass_user_data=False
-                                    ),
+                                    show_target, pass_user_data=False),
                        ],
 
         },
+
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
 
