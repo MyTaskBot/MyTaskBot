@@ -205,8 +205,7 @@ def show_task(bot, update):
                 )
 
     else:  
-        # этот код пока никогда не выполняется
-        # Не смотрите сюда, мы были не в себе
+        # Dont see that!
         msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return ConversationHandler.END
@@ -234,8 +233,7 @@ def show_target(bot, update):
                 )
 
     else:  
-        # этот код пока никогда не выполняется
-        # Не смотрите сюда, мы были не в себе
+        # Dont see that!
         msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return ConversationHandler.END
@@ -282,7 +280,7 @@ def main():
                                 ],
             GETTING_TARGET: [MessageHandler(Filters.text,
                                             get_target_text,
-                                            pass_user_data=True
+                                            pass_user_data=False
                                             ),
                              ],
         },
