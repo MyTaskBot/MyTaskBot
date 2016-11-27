@@ -11,7 +11,12 @@ import config
 from classes import *
 
 
-log = logging.getLogger(__name__)
+logging.basicConfig(format='all [%(name)s] %(levelname)s: %(asctime)s - %(message)s',
+                    level=logging.NOTSET)
+
+logger = logging.getLogger('bot_API')
+
+log = logging.getLogger('Core')
 
 lite_handler = logging.StreamHandler()
 lite_handler.setLevel(logging.DEBUG)
@@ -25,10 +30,12 @@ heavy_handler.setFormatter(formatter)
 
 info_file_handler = logging.FileHandler('MyTaskBot.log', 'a')
 info_file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('info [%(name)s] %(levelname)s: %(asctime)s - %(message)s')
+info_file_handler.setFormatter(formatter)
 
 heavy_file_handler = logging.FileHandler('MyTaskBot.log', 'a')
+heavy_file_handler.setLevel(logging.ERROR)
 formatter = logging.Formatter('heavy [%(name)s] %(levelname)s: %(asctime)s - %(message)s')
-heavy_file_handler.setLevel(logging.INFO)
 heavy_file_handler.setFormatter(formatter)
 
 
@@ -38,10 +45,15 @@ log.addHandler(info_file_handler)
 log.addHandler(heavy_file_handler)
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
 
-logger = logging.getLogger('bot_API')
+
+def user_input_logging(type, text):
+    log.info("user input {type}: {text}".format(type=type, text=text))
+
+
+def end_conversation():
+    log.info("Exiting conversation handler")
+    return ConversationHandler.END
 
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(1, 5)
@@ -55,11 +67,8 @@ show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 users = dict()
 
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
-
-
 def start_cmd(bot, update):
+    log.info("user input command: " + "/start")
     user_id = update.message.from_user.id
     if user_id not in users:
         users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
@@ -67,6 +76,7 @@ def start_cmd(bot, update):
 
 
 def help_cmd(bot, update):
+    log.info("user input command: " + "/help")
     update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
 
 
@@ -75,6 +85,8 @@ def alarm(bot, job):
 
 
 def add_cmd(bot, update):
+    log.info("user input command: " + "/add")
+    log.info("Start conversation handler")
     update.message.reply_text(
         "What do you want to add?",
         reply_markup=add_markup)
@@ -83,6 +95,8 @@ def add_cmd(bot, update):
 
 
 def show_cmd(bot, update):
+    log.info("user input command: " + "/show")
+    log.info("Start conversation handler")
     update.message.reply_text(
         "What do you want me to show?",
         reply_markup=show_markup)
@@ -91,6 +105,7 @@ def show_cmd(bot, update):
 
 
 def add_task(bot, update):
+    log.info("user input text: " + update.message.text)
     update.message.reply_text(
         "Write date and time of Task in form DD.MM.YY HH:MM\n"
         "for example 12.12.16 4:20"
@@ -100,14 +115,13 @@ def add_task(bot, update):
 
 def get_date_and_time(bot, update, user_data):
     task = Task()
-    print('\n' + update.message.text + '\n')
-    print(type(update.message.text))
+    log.info("user input text: " + update.message.text)
     if update.message.text == 'Cancel':
-        print("CANCEL")
-        return ConversationHandler.END
+        return end_conversation()
     try:
         task.set_date_and_time(update.message.text)
     except NameError:
+        log.info("User make a mistake")
         update.message.reply_text(
             "You made a mistake, please try again\n\n"
             "Write date and time of Task in form DD.MM.YY HH:MM\n"
@@ -130,6 +144,7 @@ def get_date_and_time(bot, update, user_data):
 
 
 def get_task_text(bot, update, user_data, job_queue):
+    log.info("user input text: " + update.message.text)
     task = user_data['task']
     task.set_text(update.message.text)
 
@@ -153,11 +168,13 @@ def get_task_text(bot, update, user_data, job_queue):
         job_queue.put(job)
         update.message.reply_text("OK, i will remind you to do this task!")
     except (IndexError, ValueError):
+        log.error("Index or Value error in adding new Job")
         update.message.reply_text('Sorry, we have an error')
-    return ConversationHandler.END
+    return end_conversation()
 
 
 def add_target(bot, update):
+    log.info("user input text: " + update.message.text)
     assert bot is not None, "bot is None!"
     update.message.reply_text(
         "Give me yout Target"
@@ -167,6 +184,7 @@ def add_target(bot, update):
 
 def get_target_text(bot, update):
     assert bot is not None, "bot is None!"
+    log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
 
     if user_id not in users:
@@ -176,7 +194,7 @@ def get_target_text(bot, update):
     target = Target(update.message.text)
     user.add_target(target)
     update.message.reply_text("OK, I will memorise it")
-    return ConversationHandler.END
+    return end_conversation()
 
 
 def show_task(bot, update):
@@ -202,11 +220,10 @@ def show_task(bot, update):
                 )
 
     else:
-        # этот код пока никогда не выполняется
-        # Не смотрите сюда, мы были не в себе
+        log.error("user with id:" + user_id + "is not found")
         msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
-    return ConversationHandler.END
+    return end_conversation()
 
 
 def show_target(bot, update):
@@ -231,18 +248,17 @@ def show_target(bot, update):
                 )
 
     else:
-        # этот код пока никогда не выполняется
-        # Не смотрите сюда, мы были не в себе
+        log.error("user with id: {id}is not found".format(id=user_id))
         msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
-    return ConversationHandler.END
+    return end_conversation()
 
 
 def cancel(bot, update):
     assert bot is not None, "bot is None!"
     assert update is not None, "update is not None!"
     # some text for user
-    return ConversationHandler.END
+    return end_conversation()
 
 
 def error(bot, update, err):
@@ -253,7 +269,8 @@ def error_message(bot, update):
     update.message.reply_text(
         "ERROR INPUT!!!"
     )
-    return ConversationHandler.END
+    return end_conversation()
+
 
 def main():
     updater = Updater(config.TOKEN)
@@ -287,7 +304,7 @@ def main():
                                 ],
             GETTING_TARGET: [MessageHandler(Filters.text,
                                             get_target_text,
-                                            pass_user_data=True
+                                            pass_user_data=False
                                             ),
                              ],
         },
