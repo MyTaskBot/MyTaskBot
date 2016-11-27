@@ -10,11 +10,39 @@ from functools import wraps
 import config
 from classes import *
 
-# Enable logging
+
+log = logging.getLogger(__name__)
+
+lite_handler = logging.StreamHandler()
+lite_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('lite [%(name)s] %(levelname)s: %(asctime)s - %(message)s')
+lite_handler.setFormatter(formatter)
+
+heavy_handler = logging.StreamHandler()
+heavy_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter('heavy [%(name)s] %(levelname)s: %(asctime)s - %(message)s')
+heavy_handler.setFormatter(formatter)
+
+info_file_handler = logging.FileHandler('MyTaskBot.log', 'a')
+info_file_handler.setLevel(logging.INFO)
+
+heavy_file_handler = logging.FileHandler('MyTaskBot.log', 'a')
+formatter = logging.Formatter('heavy [%(name)s] %(levelname)s: %(asctime)s - %(message)s')
+heavy_file_handler.setLevel(logging.INFO)
+heavy_file_handler.setFormatter(formatter)
+
+
+log.addHandler(lite_handler)
+log.addHandler(heavy_handler)
+log.addHandler(info_file_handler)
+log.addHandler(heavy_file_handler)
+
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('bot_API')
+
 
 CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(1, 5)
 
