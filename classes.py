@@ -1,10 +1,20 @@
 import datetime
 
 
-class Task(object):
-    def __init__(self, dtime=None, text=None):
-        self.datetime = dtime
+class Target(object):
+    def __init__(self, text=None):
         self.text = text
+
+    def set_text(self, text):
+        assert text is not None, "Text must be not null"
+        assert type(text) == str, "Text must be string"
+        self.text = text
+
+
+class Task(Target):
+    def __init__(self, dtime=None, text=None):
+        super().__init__(text=text)
+        self.datetime = dtime
         
     def set_date_and_time(self, string):
         assert string is not None, "Text must be not null"
@@ -13,21 +23,6 @@ class Task(object):
             self.datetime = datetime.datetime.strptime(string, '%d.%m.%y %H:%M')
         except ValueError:
             raise NameError('Convert string datetime to value data and time!')
-    
-    def set_text(self, text):
-        assert text is not None, "Text must be not null"
-        assert type(text) == str, "Text must be string"
-        self.text = text
-
-
-class Target(object):
-    def __init__(self, text=None):
-        self.text = text
-    
-    def set_text(self, text):
-        assert text is not None, "Text must be not null"
-        assert type(text) == str, "Text must be string"
-        self.text = text
 
         
 class User(object):
