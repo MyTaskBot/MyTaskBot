@@ -45,8 +45,6 @@ log.addHandler(info_file_handler)
 log.addHandler(heavy_file_handler)
 
 
-
-
 def user_input_logging(type, text):
     log.info("user input {type}: {text}".format(type=type, text=text))
 
