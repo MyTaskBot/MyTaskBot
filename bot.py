@@ -3,7 +3,6 @@ from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, Rege
 
 import logging
 import datetime
-import sys
 from functools import wraps
 
 # our files
@@ -45,10 +44,16 @@ log.addHandler(info_file_handler)
 log.addHandler(heavy_file_handler)
 
 
+def logger_decorator(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        log.debug('function: {function} started'.format(function=func.__name__))
+        return func(self, *args, **kwargs)
+    return wrapper
 
 
-def user_input_logging(type, text):
-    log.info("user input {type}: {text}".format(type=type, text=text))
+def user_input_logging(input_type, text):
+    log.info("user input {type}: {text}".format(type=input_type, text=text))
 
 
 def end_conversation():
@@ -64,26 +69,33 @@ add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
 show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
 show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 
+
+#db = Database()
 users = dict()
 
 
+@logger_decorator
 def start_cmd(bot, update):
     log.info("user input command: " + "/start")
     user_id = update.message.from_user.id
+
     if user_id not in users:
         users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
     update.message.reply_text('Hi! Use /help to get help')
 
 
+@logger_decorator
 def help_cmd(bot, update):
     log.info("user input command: " + "/help")
     update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
 
 
+@logger_decorator
 def alarm(bot, job):
     bot.sendMessage(job.context[0], text=job.context[2] + ", remind you about your task:\n" + job.context[1])
 
 
+@logger_decorator
 def add_cmd(bot, update):
     log.info("user input command: " + "/add")
     log.info("Start conversation handler")
@@ -94,6 +106,7 @@ def add_cmd(bot, update):
     return CHOOSING
 
 
+@logger_decorator
 def show_cmd(bot, update):
     log.info("user input command: " + "/show")
     log.info("Start conversation handler")
@@ -104,6 +117,7 @@ def show_cmd(bot, update):
     return CHOOSING
 
 
+@logger_decorator
 def add_task(bot, update):
     log.info("user input text: " + update.message.text)
     update.message.reply_text(
@@ -113,6 +127,7 @@ def add_task(bot, update):
     return GETTING_DATE_AND_TIME
 
 
+@logger_decorator
 def get_date_and_time(bot, update, user_data):
     task = Task()
     log.info("user input text: " + update.message.text)
@@ -143,20 +158,31 @@ def get_date_and_time(bot, update, user_data):
     return GETTING_TASK_TEXT
 
 
+@logger_decorator
 def get_task_text(bot, update, user_data, job_queue):
     log.info("user input text: " + update.message.text)
     task = user_data['task']
     task.set_text(update.message.text)
 
     user_id = update.message.from_user.id
+    """
+    if get_user(user_id):
 
+    else:
+        user = User(update.message.from_user.first_name, update.message.chat_id)
+        db.register_user(user)
+    """
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
         users[user_id] = user
     else:
         user = users[user_id]
+    """
+    db.add_task(user_id, task)
+    """
     user.add_task(task)
     user_data.clear()
+
     try:
         dt = (task.datetime - datetime.datetime.now())
         delta = dt.days * 24 * 60 * 60 + dt.seconds
@@ -173,6 +199,7 @@ def get_task_text(bot, update, user_data, job_queue):
     return end_conversation()
 
 
+@logger_decorator
 def add_target(bot, update):
     log.info("user input text: " + update.message.text)
     assert bot is not None, "bot is None!"
@@ -182,13 +209,21 @@ def add_target(bot, update):
     return GETTING_TARGET
 
 
+@logger_decorator
 def get_target_text(bot, update):
     assert bot is not None, "bot is None!"
     log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
+    """
+    if get_user(user_id):
 
+    else:
+        user = User(update.message.from_user.first_name, update.message.chat_id)
+        db.register_user(user)
+    """
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
+        users[user_id] = user
     else:
         user = users[user_id]
     target = Target(update.message.text)
@@ -197,14 +232,37 @@ def get_target_text(bot, update):
     return end_conversation()
 
 
+@logger_decorator
 def show_task(bot, update):
     assert bot is not None, "bot is None!"
+    log.info("user input text: " + update.message.text)
     msg = '{icon} You tasks, {user_name} {last_name}!'.format(
         icon='\U000023F0',
         user_name=update.message.from_user.first_name,
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
+    """
+    user = db.get_user(user_id)
+    if user:
+        tasks = db.get_tasks(user_id)
+        if len(tasks) == 0:
+            msg += '\n You haven\'t got Tasks!'
+        else:
+            i = 0
+            for task in tasks:
+                i += 1
+                msg += '\n {ind}: {data} - {text}'.format(
+                    ind=i,
+                    data=task.datetime,
+                    text=task.text
+                )
+    else:
+        log.error("user with id:" + user_id + "is not found")
+        msg += "\n FATAL ERROR, admin not found "
+    """
+
+
     if user_id in users:
         user = users[user_id]
         if len(user.tasks) == 0:
@@ -226,14 +284,37 @@ def show_task(bot, update):
     return end_conversation()
 
 
+@logger_decorator
 def show_target(bot, update):
     assert bot is not None, "bot is None!"
+    log.info("user input text: " + update.message.text)
     msg = '{icon} You targets, {user_name} {last_name}!'.format(
         icon='\U000023F3',
         user_name=update.message.from_user.first_name,
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
+    """
+    user = db.get_user(user_id)
+    if user:
+        targets = db.get_targets(user_id)
+        if len(targets) == 0:
+            msg += '\n You haven\'t got Targets!'
+        else:
+            i = 0
+            for target in user.targets:
+                i += 1
+                msg += '\n {ind}: {text}'.format(
+                    ind=i,
+                    text=target.text
+                )
+
+    else:
+        log.error("user with id:" + user_id + "is not found")
+        msg += "\n FATAL ERROR, admin not found "
+    """
+
+
     if user_id in users:
         user = users[user_id]
         if len(user.targets) == 0:
@@ -254,17 +335,21 @@ def show_target(bot, update):
     return end_conversation()
 
 
+@logger_decorator
 def cancel(bot, update):
     assert bot is not None, "bot is None!"
     assert update is not None, "update is not None!"
     # some text for user
+    log.info("user input text: " + update.message.text)
     return end_conversation()
 
 
+@logger_decorator
 def error(bot, update, err):
     logger.warn('Update "%s" caused error "%s"' % (update, err))
 
 
+@logger_decorator
 def error_message(bot, update):
     update.message.reply_text(
         "ERROR INPUT!!!"
