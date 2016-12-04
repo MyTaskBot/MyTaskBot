@@ -78,7 +78,7 @@ class Database ():
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
             cur.execute(sql, (user_id, target.text,))
-            id = cur.fetchone()[0]
+            id = cur.fetchone()
             conn.commit()
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -90,24 +90,44 @@ class Database ():
         return id
 
 
-def get_target(self, user_id):
-    sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.id WHERE u.chat = %s;"""
-    conn = None
-    list = []
-    try:
-        params = config()
-        conn = psycopg2.connect(**params)
-        cur = conn.cursor()
-        cur.execute(sql, (user_id,))
-        rows = cur.fetchone()
-        for row in rows:
-            list.add[Task(row)]
-        cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-    return list
+    def get_target(self, user_id):
+        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s;"""
+        conn = None
+        list = []
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (user_id,))
+            rows = cur.fetchall()
+            for row in rows:
+                list.append(Target(row[0]))
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return list
+
+    def get_tasks(self, user_id):
+            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s;"""
+            conn = None
+            list = []
+            try:
+                params = config()
+                conn = psycopg2.connect(**params)
+                cur = conn.cursor()
+                cur.execute(sql, (user_id,))
+                rows = cur.fetchall()
+                for row in rows:
+                    list.append(Task(row[0], row[1]))
+                cur.close()
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error)
+            finally:
+                if conn is not None:
+                    conn.close()
+            return list
 
 

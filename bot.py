@@ -240,7 +240,6 @@ def show_task(bot, update):
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
-    """
     user = db.get_user(user_id)
     if user:
         tasks = db.get_tasks(user_id)
@@ -258,26 +257,8 @@ def show_task(bot, update):
     else:
         log.error("user with id:" + user_id + "is not found")
         msg += "\n FATAL ERROR, admin not found "
-    """
 
 
-    if user_id in users:
-        user = users[user_id]
-        if len(user.tasks) == 0:
-            msg += '\n You haven\'t got Tasks!'
-        else:
-            i = 0
-            for task in user.tasks:
-                i += 1
-                msg += '\n {ind}: {data} - {text}'.format(
-                    ind=i,
-                    data=task.datetime,
-                    text=task.text
-                )
-
-    else:
-        log.error("user with id:" + user_id + "is not found")
-        msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return end_conversation()
 
@@ -300,7 +281,7 @@ def show_target(bot, update):
             msg += '\n You haven\'t got Targets!'
         else:
             i = 0
-            for target in user.targets:
+            for target in targets:
                 i += 1
                 msg += '\n {ind}: {text}'.format(
                     ind=i,
