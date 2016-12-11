@@ -91,7 +91,6 @@ def start_cmd(bot, update):
     log.info("user input command: " + "/start")
     user_id = update.message.from_user.id
     check_user(update, user_id)
-
     update.message.reply_text('Hi! Use /help to get help')
 
 
@@ -170,41 +169,15 @@ def get_date_and_time(bot, update, user_data):
 
 
 @logger_decorator
-def get_task_text(bot, update, user_data, job_queue):
+def get_task_text(bot, update, user_data):
     log.info("user input text: " + update.message.text)
     task = user_data['task']
     task.set_text(update.message.text)
-
     user_id = update.message.from_user.id
-
-    if not db.is_user(user_id):
-        user = User(update.message.from_user.first_name, update.message.chat_id)
-        db.register_user(user)
-
-    if user_id not in users:
-        user = User(update.message.from_user.first_name, update.message.chat_id)
-        users[user_id] = user
-    else:
-        user = users[user_id]
-
+    check_user(update, user_id)
     db.add_task(user_id, task)
-
-    user.add_task(task)
     user_data.clear()
-
-    try:
-        dt = (task.datetime - datetime.datetime.now())
-        delta = dt.days * 24 * 60 * 60 + dt.seconds
-        job = Job(alarm,
-                  delta,
-                  repeat=False,
-                  context=(user.chat_id, task.text, user.name)
-                  )
-        job_queue.put(job)
-        update.message.reply_text("OK, i will remind you to do this task!")
-    except (IndexError, ValueError):
-        log.error("Index or Value error in adding new Job")
-        update.message.reply_text('Sorry, we have an error')
+    update.message.reply_text("OK, I will memorise it")
     return end_conversation()
 
 
@@ -223,18 +196,9 @@ def get_target_text(bot, update):
     assert bot is not None, "bot is None!"
     log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
-
-    if not db.is_user(user_id):
-        user = User(update.message.from_user.first_name, update.message.chat_id)
-        db.register_user(user_id, user)
-    if user_id not in users:
-        user = User(update.message.from_user.first_name, update.message.chat_id)
-        users[user_id] = user
-    else:
-        user = users[user_id]
+    check_user(update, user_id)
     target = Target(update.message.text)
     db.add_target(user_id, target)
-    user.add_target(target)
     update.message.reply_text("OK, I will memorise it")
     return end_conversation()
 
@@ -296,30 +260,10 @@ def show_target(bot, update):
                     ind=i,
                     text=target.text
                 )
-
     else:
         log.error("user with id:" + user_id + "is not found")
         msg += "\n FATAL ERROR, admin not found "
 
-
-    """
-    if user_id in users:
-        user = users[user_id]
-        if len(user.targets) == 0:
-            msg += '\n You haven\'t got Tasks!'
-        else:
-            i = 0
-            for target in user.targets:
-                i += 1
-                msg += '\n {ind}: {text}'.format(
-                    ind=i,
-                    text=target.text
-                )
-
-    else:
-        log.error("user with id: {id}is not found".format(id=user_id))
-        msg += "\n FATAL ERROR, admin not found "
-    """
     update.message.reply_text(msg)
     return end_conversation()
 
@@ -348,13 +292,18 @@ def error_message(bot, update):
 
 @logger_decorator
 def update(bot, job):
-    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%M-%d %H:%M:00'))
+    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
+    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
+    print(tasks)
     for task in tasks:
         user = users[task.user_id]
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
+        db.done_task(task.user_id, task)
 
 
 def main():
+    global users
+    users = db.get_all_users()
     updater = Updater(config.TOKEN)
     jq = JobQueue(updater.bot)
     job = Job(
@@ -393,7 +342,6 @@ def main():
             GETTING_TASK_TEXT: [MessageHandler(Filters.text,
                                                get_task_text,
                                                pass_user_data=True,
-                                               pass_job_queue=True
                                                ),
                                 ],
             GETTING_TARGET: [MessageHandler(Filters.text,
@@ -435,7 +383,6 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
-
 
 
 if __name__ == '__main__':
