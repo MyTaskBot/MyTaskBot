@@ -1,8 +1,10 @@
+#MyTaskBot
 from telegram import ReplyKeyboardMarkup
+from telegram.ext import JobQueue
 from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, RegexHandler, MessageHandler, Filters
 
 import logging
-import datetime
+from datetime import *
 from functools import wraps
 from db import *
 
@@ -75,14 +77,21 @@ db = Database()
 users = dict()
 
 
+def check_user(update, user_id):
+    if not db.get_user(user_id):
+        user = User(update.message.from_user.first_name, update.message.chat_id, update.message.from_user.id)
+        db.register_user(user)
+    if user_id not in users:
+        user = User(update.message.from_user.first_name, update.message.chat_id, update.message.from_user.id)
+        users[user_id] = user
+
+
 @logger_decorator
 def start_cmd(bot, update):
     log.info("user input command: " + "/start")
     user_id = update.message.from_user.id
-    if not db.get_user(user_id):
-        db.register_user(user_id, update.message.from_user.first_name)
-    if user_id not in users:
-        users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
+    check_user(update, user_id)
+
     update.message.reply_text('Hi! Use /help to get help')
 
 
@@ -217,7 +226,7 @@ def get_target_text(bot, update):
 
     if not db.get_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id)
-        db.register_user(user_id, user.name)
+        db.register_user(user_id, user)
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
         users[user_id] = user
@@ -337,8 +346,28 @@ def error_message(bot, update):
     return end_conversation()
 
 
+@logger_decorator
+def update(bot, job):
+    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%d.%m.%y %H:%M'))
+    for task in tasks:
+        user = users[task.user_id]
+        bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
+
+
 def main():
     updater = Updater(config.TOKEN)
+    jq = JobQueue(updater.bot)
+    job = Job(
+        update,
+        60,
+        repeat=True,
+        context=None
+    )
+    delta = 60 - datetime.datetime.now().second
+    if delta == 60:
+        delta = 0
+    jq.put(job, delta)
+    jq.start()
 
     dp = updater.dispatcher
     add_conv_handler = ConversationHandler(
@@ -406,6 +435,7 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 
 if __name__ == '__main__':

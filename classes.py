@@ -2,8 +2,10 @@ import datetime
 
 
 class Target(object):
-    def __init__(self, text=None):
+    def __init__(self, user_id=None, text=None, t_id=None):
         self.text = text
+        self.id = t_id
+        self.user_id = user_id
 
     def set_text(self, text):
         assert text is not None, "Text must be not null"
@@ -26,12 +28,14 @@ class Task(Target):
 
         
 class User(object):
-    def __init__(self, name, chat_id):
+    def __init__(self, name, chat_id, user_id):
         self.name = name
         self.chat_id = chat_id
         self.tasks = list()
         self.targets = list()
-        
+        self.user_id = user_id
+
+
     def change_name(self, new_name):
         assert new_name is not None, "New_name must be not null"
         assert type(new_name) == str, "New_name must be string"
