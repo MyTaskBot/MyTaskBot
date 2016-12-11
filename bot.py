@@ -296,14 +296,18 @@ def update(bot, job):
     tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
     print(tasks)
     for task in tasks:
+        print(task.user_id)
         user = users[task.user_id]
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
-        db.done_task(task.user_id, task)
+        print(task.id)
+        db.done_task(task)
+        db.remove_task(task)
 
 
 def main():
     global users
     users = db.get_all_users()
+    print(users)
     updater = Updater(config.TOKEN)
     jq = JobQueue(updater.bot)
     job = Job(
