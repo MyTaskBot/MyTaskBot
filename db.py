@@ -137,7 +137,7 @@ class Database():
             return list
 
 
-    def remove_target(self, user_id, target):
+    def remove_target(self, target):
         sql = """UPDATE public."Target" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
@@ -146,7 +146,7 @@ class Database():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (target.id, user_id,))
+            cur.execute(sql, (target.id, target.user,))
             id = cur.fetchone()
             conn.commit()
             cur.close()
