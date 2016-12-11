@@ -14,8 +14,8 @@ class Target(object):
 
 
 class Task(Target):
-    def __init__(self, dtime=None, text=None):
-        super().__init__(text=text)
+    def __init__(self,user_id=None, text=None, t_id=None, dtime=None):
+        super().__init__(text=text, user_id=user_id, t_id=t_id)
         self.datetime = dtime
         
     def set_date_and_time(self, string):
