@@ -3,9 +3,9 @@ from classes import *
 from configDB import config
 
 class Database ():
-    def register_user(self, chat, name):
-        sql = """INSERT INTO public."User"(chat, name)
-                 VALUES(%s, %s) RETURNING chat;"""
+    def register_user(self, user):
+        sql = """INSERT INTO public."User"(user_id, chat_id, name)
+                 VALUES(%s, %s) RETURNING chat_id;"""
         conn = None
         user_id = None
         try:
@@ -13,9 +13,9 @@ class Database ():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (chat, name))
+            cur.execute(sql, (user.user_id, user.chat_id, user.name,))
             # get the generated id back
-            user_id = cur.fetchone()[0]
+            chat_id = cur.fetchone()[0]
             conn.commit()
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -23,11 +23,10 @@ class Database ():
         finally:
             if conn is not None:
                 conn.close()
+        return chat_id
 
-        return user_id
-
-    def get_user(self, user_id):
-            sql = """SELECT chat, name FROM public."User" WHERE chat = %s;"""
+    def is_user(self, user_id):
+            sql = """SELECT chat, name FROM public."User" WHERE user_id = %s;"""
             conn = None
             id = None
             try:
@@ -84,12 +83,11 @@ class Database ():
         finally:
             if conn is not None:
                 conn.close()
-
         return id
 
 
     def get_target(self, user_id):
-        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0;"""
+        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.user_id WHERE u.user_id = %s AND t.is_deleted = 0;"""
         conn = None
         list = []
         try:
@@ -109,7 +107,7 @@ class Database ():
         return list
 
     def get_tasks(self, user_id):
-            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0 AND isDone = 0"""
+            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.user_id WHERE u.user_id = %s AND t.is_deleted = 0 AND is_done = 0"""
             conn = None
             list = []
             try:
@@ -129,7 +127,7 @@ class Database ():
             return list
 
     def remove_target(self, user_id, target):
-        sql = """UPDATE public."Target" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Target" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
@@ -149,7 +147,7 @@ class Database ():
         return id
 
     def remove_task(self, user_id, task):
-        sql = """UPDATE public."Task" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Task" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
@@ -169,7 +167,7 @@ class Database ():
         return id
 
     def done_task(self, user_id, task):
-        sql = """UPDATE public."Task" SET isDone = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Task" SET is_done = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
@@ -187,6 +185,50 @@ class Database ():
             if conn is not None:
                 conn.close()
         return id
+
+
+    def get_all_users(self):
+            sql = """SELECT name, chat, user_id, name FROM public."User" """
+            conn = None
+            list = []
+            try:
+                params = config()
+                conn = psycopg2.connect(**params)
+                cur = conn.cursor()
+                cur.execute(sql)
+                rows = cur.fetchall()
+                users = {}
+                for row in rows:
+                    users[row[0]] = User(row[0], row[1], row[2])
+                cur.close()
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(error)
+            finally:
+                if conn is not None:
+                    conn.close()
+            return users
+
+    def get_recent_tasks(self, time):
+        sql = """SELECT time, text FROM public."Task" WHERE time = %s AND t.is_deleted = 0 AND is_done = 0 ORDER BY TIME ASC"""
+        conn = None
+        list = []
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (time,))
+            rows = cur.fetchall()
+            for row in rows:
+                list.append(Task(row[0], row[1]))
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return list
+
+
 
 
 
