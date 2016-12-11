@@ -2,12 +2,15 @@ import psycopg2
 from classes import *
 from configDB import config
 
-class Database ():
+
+class Database():
+
+
     def register_user(self, user):
         sql = """INSERT INTO public."User"(user_id, chat_id, name)
                  VALUES(%s, %s) RETURNING chat_id;"""
         conn = None
-        user_id = None
+        chat_id = None
         try:
             params = config()
             # connect to the PostgreSQL database
@@ -24,6 +27,7 @@ class Database ():
             if conn is not None:
                 conn.close()
         return chat_id
+
 
     def is_user(self, user_id):
             sql = """SELECT chat, name FROM public."User" WHERE user_id = %s;"""
@@ -42,6 +46,7 @@ class Database ():
                 if conn is not None:
                     conn.close()
             return id
+
 
     def add_task(self, user_id, task):
         sql = """INSERT INTO public."Task"(user_t, text, time)
@@ -64,6 +69,7 @@ class Database ():
                 conn.close()
 
         return id
+
 
     def add_target(self, user_id, target):
         sql = """INSERT INTO public."Target"(user_t, text) VALUES(%s, %s) RETURNING id;"""
@@ -126,6 +132,7 @@ class Database ():
                     conn.close()
             return list
 
+
     def remove_target(self, user_id, target):
         sql = """UPDATE public."Target" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
@@ -146,6 +153,7 @@ class Database ():
                 conn.close()
         return id
 
+
     def remove_task(self, user_id, task):
         sql = """UPDATE public."Task" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
@@ -165,6 +173,7 @@ class Database ():
             if conn is not None:
                 conn.close()
         return id
+
 
     def done_task(self, user_id, task):
         sql = """UPDATE public."Task" SET is_done = 1 WHERE id = %s AND user_t = %s RETURNING id"""
@@ -208,8 +217,9 @@ class Database ():
                     conn.close()
             return users
 
+
     def get_recent_tasks(self, time):
-        sql = """SELECT time, text FROM public."Task" WHERE time = %s AND t.is_deleted = 0 AND is_done = 0 ORDER BY TIME ASC"""
+        sql = """SELECT time, text FROM public."Task" WHERE time = %s AND is_deleted = 0 AND is_done = 0 ORDER BY TIME ASC"""
         conn = None
         list = []
         try:
