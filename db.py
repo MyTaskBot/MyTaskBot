@@ -2,7 +2,8 @@ import psycopg2
 from classes import *
 from configDB import config
 
-class Database ():
+
+class Database():
     def register_user(self, chat, name):
         sql = """INSERT INTO public."User"(chat, name)
                  VALUES(%s, %s) RETURNING chat;"""
@@ -89,7 +90,7 @@ class Database ():
 
 
     def get_target(self, user_id):
-        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0;"""
+        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND t.is_deleted = 0;"""
         conn = None
         list = []
         try:
@@ -109,7 +110,7 @@ class Database ():
         return list
 
     def get_tasks(self, user_id):
-            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0 AND isDone = 0"""
+            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND t.is_deleted = 0 AND is_done = 0"""
             conn = None
             list = []
             try:
@@ -129,7 +130,7 @@ class Database ():
             return list
 
     def remove_target(self, user_id, target):
-        sql = """UPDATE public."Target" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Target" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
@@ -149,7 +150,7 @@ class Database ():
         return id
 
     def remove_task(self, user_id, task):
-        sql = """UPDATE public."Task" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Task" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
@@ -169,7 +170,7 @@ class Database ():
         return id
 
     def done_task(self, user_id, task):
-        sql = """UPDATE public."Task" SET isDone = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        sql = """UPDATE public."Task" SET is_done = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
         try:
