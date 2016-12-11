@@ -5,6 +5,7 @@ from telegram.ext import Updater, CommandHandler, Job, ConversationHandler, Rege
 import logging
 import datetime
 from functools import wraps
+from db import *
 
 # our files
 import config
@@ -71,7 +72,7 @@ show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
 show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 
 
-#db = Database()
+db = Database()
 users = dict()
 
 
@@ -79,7 +80,8 @@ users = dict()
 def start_cmd(bot, update):
     log.info("user input command: " + "/start")
     user_id = update.message.from_user.id
-
+    if not db.get_user(user_id):
+        db.register_user(user_id, update.message.from_user.first_name)
     if user_id not in users:
         users[user_id] = User(update.message.from_user.first_name, update.message.chat_id)
     update.message.reply_text('Hi! Use /help to get help')
@@ -166,21 +168,19 @@ def get_task_text(bot, update, user_data, job_queue):
     task.set_text(update.message.text)
 
     user_id = update.message.from_user.id
-    """
-    if get_user(user_id):
 
-    else:
+    if not db.get_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id)
         db.register_user(user)
-    """
+
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
         users[user_id] = user
     else:
         user = users[user_id]
-    """
+
     db.add_task(user_id, task)
-    """
+
     user.add_task(task)
     user_data.clear()
 
@@ -215,19 +215,17 @@ def get_target_text(bot, update):
     assert bot is not None, "bot is None!"
     log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
-    """
-    if get_user(user_id):
 
-    else:
+    if not db.get_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id)
-        db.register_user(user)
-    """
+        db.register_user(user_id, user.name)
     if user_id not in users:
         user = User(update.message.from_user.first_name, update.message.chat_id)
         users[user_id] = user
     else:
         user = users[user_id]
     target = Target(update.message.text)
+    db.add_target(user_id, target)
     user.add_target(target)
     update.message.reply_text("OK, I will memorise it")
     return end_conversation()
@@ -243,7 +241,6 @@ def show_task(bot, update):
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
-    """
     user = db.get_user(user_id)
     if user:
         tasks = db.get_tasks(user_id)
@@ -261,26 +258,8 @@ def show_task(bot, update):
     else:
         log.error("user with id:" + user_id + "is not found")
         msg += "\n FATAL ERROR, admin not found "
-    """
 
 
-    if user_id in users:
-        user = users[user_id]
-        if len(user.tasks) == 0:
-            msg += '\n You haven\'t got Tasks!'
-        else:
-            i = 0
-            for task in user.tasks:
-                i += 1
-                msg += '\n {ind}: {data} - {text}'.format(
-                    ind=i,
-                    data=task.datetime,
-                    text=task.text
-                )
-
-    else:
-        log.error("user with id:" + user_id + "is not found")
-        msg += "\n FATAL ERROR, admin not found "
     update.message.reply_text(msg)
     return end_conversation()
 
@@ -295,15 +274,15 @@ def show_target(bot, update):
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
-    """
+
     user = db.get_user(user_id)
     if user:
-        targets = db.get_targets(user_id)
+        targets = db.get_target(user_id)
         if len(targets) == 0:
             msg += '\n You haven\'t got Targets!'
         else:
             i = 0
-            for target in user.targets:
+            for target in targets:
                 i += 1
                 msg += '\n {ind}: {text}'.format(
                     ind=i,
@@ -313,9 +292,9 @@ def show_target(bot, update):
     else:
         log.error("user with id:" + user_id + "is not found")
         msg += "\n FATAL ERROR, admin not found "
+
+
     """
-
-
     if user_id in users:
         user = users[user_id]
         if len(user.targets) == 0:
@@ -332,6 +311,7 @@ def show_target(bot, update):
     else:
         log.error("user with id: {id}is not found".format(id=user_id))
         msg += "\n FATAL ERROR, admin not found "
+    """
     update.message.reply_text(msg)
     return end_conversation()
 
