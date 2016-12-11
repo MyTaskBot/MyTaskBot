@@ -78,7 +78,7 @@ users = dict()
 
 
 def check_user(update, user_id):
-    if not db.get_user(user_id):
+    if not db.is_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id, update.message.from_user.id)
         db.register_user(user)
     if user_id not in users:
@@ -177,7 +177,7 @@ def get_task_text(bot, update, user_data, job_queue):
 
     user_id = update.message.from_user.id
 
-    if not db.get_user(user_id):
+    if not db.is_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id)
         db.register_user(user)
 
@@ -224,7 +224,7 @@ def get_target_text(bot, update):
     log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
 
-    if not db.get_user(user_id):
+    if not db.is_user(user_id):
         user = User(update.message.from_user.first_name, update.message.chat_id)
         db.register_user(user_id, user)
     if user_id not in users:
@@ -249,7 +249,7 @@ def show_task(bot, update):
         last_name=update.message.from_user.last_name
     )
     user_id = update.message.from_user.id
-    user = db.get_user(user_id)
+    user = db.is_user(user_id)
     if user:
         tasks = db.get_tasks(user_id)
         if len(tasks) == 0:
@@ -283,7 +283,7 @@ def show_target(bot, update):
     )
     user_id = update.message.from_user.id
 
-    user = db.get_user(user_id)
+    user = db.is_user(user_id)
     if user:
         targets = db.get_target(user_id)
         if len(targets) == 0:
@@ -348,7 +348,7 @@ def error_message(bot, update):
 
 @logger_decorator
 def update(bot, job):
-    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%d.%m.%y %H:%M'))
+    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%M-%d %H:%M:00'))
     for task in tasks:
         user = users[task.user_id]
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
