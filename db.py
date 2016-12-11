@@ -70,8 +70,6 @@ class Database ():
         sql = """INSERT INTO public."Target"(user_t, text) VALUES(%s, %s) RETURNING id;"""
         conn = None
         id = None
-        print(user_id)
-        print(target.text)
         try:
             params = config()
             # connect to the PostgreSQL database
@@ -91,7 +89,7 @@ class Database ():
 
 
     def get_target(self, user_id):
-        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s;"""
+        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0;"""
         conn = None
         list = []
         try:
@@ -111,7 +109,7 @@ class Database ():
         return list
 
     def get_tasks(self, user_id):
-            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s;"""
+            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.chat WHERE u.chat = %s AND idDeleted = 0 AND isDone = 0"""
             conn = None
             list = []
             try:
@@ -129,5 +127,66 @@ class Database ():
                 if conn is not None:
                     conn.close()
             return list
+
+    def remove_target(self, user_id, target):
+        sql = """UPDATE public."Target" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        conn = None
+        id = None
+        try:
+            params = config()
+            # connect to the PostgreSQL database
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (target.id, user_id,))
+            id = cur.fetchone()
+            conn.commit()
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return id
+
+    def remove_task(self, user_id, task):
+        sql = """UPDATE public."Task" SET isDeleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        conn = None
+        id = None
+        try:
+            params = config()
+            # connect to the PostgreSQL database
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (task.id, user_id,))
+            id = cur.fetchone()
+            conn.commit()
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return id
+
+    def done_task(self, user_id, task):
+        sql = """UPDATE public."Task" SET isDone = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        conn = None
+        id = None
+        try:
+            params = config()
+            # connect to the PostgreSQL database
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (task.id, user_id,))
+            id = cur.fetchone()
+            conn.commit()
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return id
+
 
 
