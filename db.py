@@ -158,7 +158,7 @@ class Database():
         return id
 
 
-    def remove_task(self, user_id, task):
+    def remove_task(self, task):
         sql = """UPDATE public."Task" SET is_deleted = 1 WHERE id = %s AND user_t = %s RETURNING id"""
         conn = None
         id = None
@@ -167,7 +167,7 @@ class Database():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (task.id, user_id,))
+            cur.execute(sql, (task.id, task.user_id,))
             id = cur.fetchone()
             conn.commit()
             cur.close()

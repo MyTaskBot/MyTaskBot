@@ -301,7 +301,6 @@ def update(bot, job):
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
         print(task.id)
         db.done_task(task)
-        db.remove_task(task)
 
 
 def main():
