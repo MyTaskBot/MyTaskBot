@@ -5,7 +5,7 @@ from configDB import config
 class Database ():
     def register_user(self, user):
         sql = """INSERT INTO public."User"(user_id, chat_id, name)
-                 VALUES(%s, %s) RETURNING chat_id;"""
+                 VALUES(%s, %s, %s) RETURNING chat_id;"""
         conn = None
         user_id = None
         try:
@@ -26,22 +26,26 @@ class Database ():
         return chat_id
 
     def is_user(self, user_id):
-            sql = """SELECT chat, name FROM public."User" WHERE user_id = %s;"""
-            conn = None
-            id = None
-            try:
-                params = config()
-                conn = psycopg2.connect(**params)
-                cur = conn.cursor()
-                cur.execute(sql, (user_id,))
-                id = cur.fetchone()[0]
-                cur.close()
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-            finally:
-                if conn is not None:
-                    conn.close()
-            return id
+        sql = """SELECT chat_id, name FROM public."User" WHERE user_id = %s;"""
+        conn = None
+        chat_id = None
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (user_id,))
+            res = cur.fetchone()
+            if res:
+                chat_id = res[0]
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("error")
+            print(error)
+            print("error")
+        finally:
+            if conn is not None:
+                conn.close()
+        return chat_id
 
     def add_task(self, user_id, task):
         sql = """INSERT INTO public."Task"(user_t, text, time)
@@ -191,15 +195,19 @@ class Database ():
             sql = """SELECT name, chat, user_id, name FROM public."User" """
             conn = None
             list = []
+            users = dict()
             try:
                 params = config()
                 conn = psycopg2.connect(**params)
                 cur = conn.cursor()
                 cur.execute(sql)
                 rows = cur.fetchall()
-                users = {}
                 for row in rows:
-                    users[row[0]] = User(row[0], row[1], row[2])
+                    users[row[2]] = User(row[0], row[1], row[2])
+                    print(row[0])
+                    print(row[1])
+                    print(row[2])
+                    print(users[row[2]])
                 cur.close()
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
