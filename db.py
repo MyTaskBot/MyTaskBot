@@ -125,7 +125,6 @@ class Database():
                 cur.execute(sql, (user_id,))
                 rows = cur.fetchall()
                 for row in rows:
-                    # HERE!!!!!
                     list.append(Task(
                         user_id=user_id,
                         dtime=datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M'),
