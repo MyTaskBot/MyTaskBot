@@ -43,9 +43,7 @@ class Database():
                 chat_id = res[0]
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
-            print("error")
             print(error)
-            print("error")
         finally:
             if conn is not None:
                 conn.close()
@@ -62,7 +60,7 @@ class Database():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (user_id, task.text, task.datetime))
+            cur.execute(sql, (user_id, task.text, task.datetime.strftime('%Y-%m-%d %H:%M')))
             id = cur.fetchone()[0]
             conn.commit()
             cur.close()
@@ -107,7 +105,7 @@ class Database():
             cur.execute(sql, (user_id,))
             rows = cur.fetchall()
             for row in rows:
-                list.append(Target(text = row[0], user_id = user_id, t_id = row[1]))
+                list.append(Target(text=row[0], user_id=user_id, t_id=row[1]))
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -127,7 +125,13 @@ class Database():
                 cur.execute(sql, (user_id,))
                 rows = cur.fetchall()
                 for row in rows:
-                    list.append(Task(user_id = user_id, dtime= row[0], text = row[1], t_id = row[2]))
+                    # HERE!!!!!
+                    list.append(Task(
+                        user_id=user_id,
+                        dtime=datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M'),
+                        text=row[1],
+                        t_id=row[2])
+                    )
                 cur.close()
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
@@ -210,11 +214,7 @@ class Database():
             cur = conn.cursor()
             cur.execute(sql)
             rows = cur.fetchall()
-            print(rows)
             for row in rows:
-                print(row[0])
-                print(row[1])
-                print(row[2])
                 users[row[2]] = User(row[0], row[1], row[2])
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -236,7 +236,12 @@ class Database():
             cur.execute(sql, (time,))
             rows = cur.fetchall()
             for row in rows:
-                list.append(Task(dtime=row[0], text=row[1], user_id=row[2], t_id=row[3]))
+                list.append(Task(
+                    dtime=datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M'),
+                    text=row[1],
+                    user_id=row[2],
+                    t_id=row[3])
+                )
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -244,8 +249,3 @@ class Database():
             if conn is not None:
                 conn.close()
         return list
-
-
-
-
-

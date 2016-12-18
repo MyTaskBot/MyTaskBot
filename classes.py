@@ -14,39 +14,29 @@ class Target(object):
 
 
 class Task(Target):
-    def __init__(self,user_id=None, text=None, t_id=None, dtime=None):
+    def __init__(self, user_id=None, text=None, t_id=None, dtime=None):
         super().__init__(text=text, user_id=user_id, t_id=t_id)
         self.datetime = dtime
         
-    def set_date_and_time(self, string):
-        assert string is not None, "Text must be not null"
-        assert type(string) == str, "Text must be string"
-        try:
-            self.datetime = datetime.datetime.strptime(string, '%d.%m.%y %H:%M')
-        except ValueError:
-            raise NameError('Convert string datetime to value data and time!')
+    def set_datetime(self, dtime):
+        assert dtime is not None, "Text must be not null"
+        assert type(dtime) == datetime.datetime, "Text must be string"
+        self.datetime = dtime
 
         
 class User(object):
-    def __init__(self, name, chat_id, user_id):
+    def __init__(self, name, chat_id, user_id, gmt=3):
         self.name = name
         self.chat_id = chat_id
-        self.tasks = list()
-        self.targets = list()
         self.user_id = user_id
-
+        self.gmt = gmt
 
     def change_name(self, new_name):
         assert new_name is not None, "New_name must be not null"
         assert type(new_name) == str, "New_name must be string"
         self.name = new_name
         
-    def add_task(self, task):
-        assert task is not None, "task must be not null"
-        assert type(task) == Task, "task must be Task"
-        self.tasks.append(task)
-        
-    def add_target(self, target):
-        assert target is not None, "target must be not null"
-        assert type(target) == Target, "target must be Target"
-        self.targets.append(target)
+    def change_gmt(self, new_gmt):
+        assert type(new_gmt) == int, "New_name must be string"
+        if -12 < new_gmt < 13:
+            self.gmt = new_gmt

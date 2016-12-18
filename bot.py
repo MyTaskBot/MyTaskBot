@@ -55,22 +55,24 @@ def logger_decorator(func):
     return wrapper
 
 
-def user_input_logging(input_type, text):
-    log.info("user input {type}: {text}".format(type=input_type, text=text))
-
-
 def end_conversation():
     log.info("Exiting conversation handler")
     return ConversationHandler.END
 
 
-CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET = range(1, 5)
+CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET, CHANGE, GETTING_TIME = range(1, 7)
 
-add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
-add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
+#add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
+#add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
+
+task_reply_keyboard = [["Today", "Tomorrow"], ["Custom"], ['Cancel']]
+task_markup = ReplyKeyboardMarkup(task_reply_keyboard, one_time_keyboard=True)
 
 show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
 show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
+
+show_reply_keyboard = [['Change','Cancel']]
+gmt_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 
 
 db = Database()
@@ -79,10 +81,18 @@ users = dict()
 
 def check_user(update, user_id):
     if not db.is_user(user_id):
-        user = User(update.message.from_user.first_name, update.message.chat_id, update.message.from_user.id)
+        user = User(
+            name=update.message.from_user.first_name,
+            chat_id=update.message.chat_id,
+            user_id=update.message.from_user.id
+        )
         db.register_user(user)
     if user_id not in users:
-        user = User(update.message.from_user.first_name, update.message.chat_id, update.message.from_user.id)
+        user = User(
+            name=update.message.from_user.first_name,
+            chat_id=update.message.chat_id,
+            user_id=update.message.from_user.id
+        )
         users[user_id] = user
 
 
@@ -90,7 +100,6 @@ def check_user(update, user_id):
 def start_cmd(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input command: " + "/start")
-    user_id = update.message.from_user.id
     check_user(update, user_id)
     update.message.reply_text('Hi! Use /help to get help')
 
@@ -108,18 +117,6 @@ def alarm(bot, job):
 
 
 @logger_decorator
-def add_cmd(bot, update):
-    user_id = update.message.from_user.id
-    log.info("user with id: " + str(user_id) + " input command: " + "/add")
-    log.info("user with id: " + str(user_id) + " Starting conversation handler")
-    update.message.reply_text(
-        "What do you want to add?",
-        reply_markup=add_markup)
-
-    return CHOOSING
-
-
-@logger_decorator
 def show_cmd(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input command: " + "/show")
@@ -131,8 +128,75 @@ def show_cmd(bot, update):
     return CHOOSING
 
 
+def gmt_to_str(gmt):
+    if gmt > 0:
+        return "+" + str(gmt)
+    else:
+        return str(gmt)
+
+
+@logger_decorator
+def change_gmt_cmd(bot, update):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input command: " + "/GMT")
+    log.info("user with id: " + str(user_id) + " Starting conversation handler")
+    check_user(update, user_id)
+    update.message.reply_text(
+        'Now, your time zone is GMT ' + gmt_to_str(users[user_id].gmt) + "\n",
+        reply_markup=gmt_markup
+    )
+    return CHOOSING
+
+
+@logger_decorator
+def change_gmt(bot, update):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    try:
+        new_gmt = int(update.message.text)
+    except:
+        update.message.reply_text(
+            'Invalid input, please try again',
+        )
+        return CHANGE
+    if new_gmt > 12 or new_gmt < -11:
+        update.message.reply_text(
+            'Invalid GMT (it must be in [-11,+12]), please try again',
+        )
+        return CHANGE
+
+    users[user_id].gmt = new_gmt
+    # Записать в базу, что юзер изменил часововй пояс
+    update.message.reply_text(
+        'Ok, your new time zone is GMT' + gmt_to_str(new_gmt)
+    )
+    return end_conversation()
+
+
+@logger_decorator
+def get_new_gmt(bot, update):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text(
+        'Write new GMT(it must be in [-11,+12])',
+    )
+    return CHANGE
+
+
+
 @logger_decorator
 def add_task(bot, update):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text(
+        "Choose",
+        reply_markup=task_markup,
+    )
+    return CHOOSING
+
+
+@logger_decorator
+def add_custom_task(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     update.message.reply_text(
@@ -143,44 +207,99 @@ def add_task(bot, update):
 
 
 @logger_decorator
+def add_today_task(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text(
+        "Write time of Task in form HH:MM\n"
+        "for example 14:20"
+    )
+    user_data["data"] = datetime.date.today()
+    return GETTING_TIME
+
+
+@logger_decorator
+def add_tomorrow_task(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text(
+        "Write time of Task in form HH:MM\n"
+        "for example 14:20"
+    )
+    user_data["data"] = datetime.date.today() + datetime.timedelta(days=1)
+    print(user_data["data"])
+    return GETTING_TIME
+
+
+@logger_decorator
+def get_time(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    try:
+        t = datetime.datetime.strptime(update.message.text, '%H:%M').time()
+        print(t)
+    except ValueError:
+        log.info("user with id: " + str(user_id) + " make a mistake")
+        update.message.reply_text(
+            "You made a mistake, please try again\n\n"
+            "Write time of Task in form HH:MM\n"
+            "for example 14:20"
+        )
+        return GETTING_TIME
+    data_time = datetime.datetime.combine(user_data["data"], t)
+    user_data["dtime"] = data_time
+    update.message.reply_text("Write your task:")
+    return GETTING_TASK_TEXT
+
+
+@logger_decorator
 def get_date_and_time(bot, update, user_data):
-    task = Task()
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     if update.message.text == 'Cancel':
         return end_conversation()
     try:
-        task.set_date_and_time(update.message.text)
-    except NameError:
+        date_time = datetime.datetime.strptime(update.message.text, '%d.%m.%y %H:%M')
+    except ValueError:
         log.info("user with id: " + str(user_id) + " make a mistake")
         update.message.reply_text(
             "You made a mistake, please try again\n\n"
             "Write date and time of Task in form DD.MM.YY HH:MM\n"
             "for example 12.12.16 4:20"
         )
-        del task
         return GETTING_DATE_AND_TIME
-    if (task.datetime - datetime.datetime.now()).days < 0:
+    if date_time < datetime.datetime.now():
         update.message.reply_text(
             'Sorry we can not go back to future!\n\n'
             'Write date and time of Task in form DD.MM.YY HH:MM\n'
             'for example 12.12.16 4:20'
         )
-        del task
         return GETTING_DATE_AND_TIME
-    user_data['task'] = task
+    user_data['dtime'] = date_time
     update.message.reply_text("Write your task:")
-    del task
     return GETTING_TASK_TEXT
+
+
+def to_gmt0(date_time, gmt):
+    return date_time - datetime.timedelta(seconds=gmt*60*60) + datetime.timedelta(seconds=config.SERVER_GMT*60*60)
+
+
+def from_gmt0(date_time, gmt):
+    return date_time + datetime.timedelta(seconds=gmt*60*60) - datetime.timedelta(seconds=config.SERVER_GMT*60*60)
 
 
 @logger_decorator
 def get_task_text(bot, update, user_data):
     user_id = update.message.from_user.id
-    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
-    task = user_data['task']
-    task.set_text(update.message.text)
     check_user(update, user_id)
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+
+    date_time = user_data['dtime']
+    task = Task(
+        user_id=user_id,
+        text=update.message.text,
+        dtime=to_gmt0(date_time, users[user_id].gmt)
+    )
     db.add_task(user_id, task)
     user_data.clear()
     update.message.reply_text("OK, I will memorise it")
@@ -191,9 +310,8 @@ def get_task_text(bot, update, user_data):
 def add_target(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
-    assert bot is not None, "bot is None!"
     update.message.reply_text(
-        "Give me yout Target"
+        "Give me your Target"
     )
     return GETTING_TARGET
 
@@ -231,7 +349,7 @@ def show_task(bot, update):
                 i += 1
                 msg += '\n {ind}: {data} - {text}'.format(
                     ind=i,
-                    data=task.datetime,
+                    data=from_gmt0(task.datetime, users[user_id].gmt).strftime('%d.%m.%Y %H:%M'),
                     text=task.text
                 )
     else:
@@ -291,7 +409,7 @@ def error(bot, update, err):
 @logger_decorator
 def error_message(bot, update):
     update.message.reply_text(
-        "ERROR INPUT!!!"
+        "Invalid input!!!"
     )
     return end_conversation()
 
@@ -299,21 +417,18 @@ def error_message(bot, update):
 @logger_decorator
 def update(bot, job):
     log.info(" starting update")
-    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
-    tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
-    print(tasks)
+    t = datetime.datetime.now()
+    tasks = db.get_recent_tasks(t.strftime('%Y-%m-%d %H:%M'))
     for task in tasks:
-        print(task.user_id)
         user = users[task.user_id]
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
-        print(task.id)
         db.done_task(task)
     log.info("update finished")
+
 
 def main():
     global users
     users = db.get_all_users()
-    print(users)
     updater = Updater(config.TOKEN)
     jq = JobQueue(updater.bot)
     job = Job(
@@ -328,58 +443,74 @@ def main():
     jq.put(job, delta)
     jq.start()
 
-    dp = updater.dispatcher
-    add_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('add', add_cmd)],
-
+    task_handler = ConversationHandler(
+        entry_points=[CommandHandler('task', add_task)],
         states={
-            CHOOSING: [RegexHandler('^Task$',
-                                    add_task, pass_user_data=False),
-                       RegexHandler('^Target$',
-                                    add_target, pass_user_data=False),
+            CHOOSING: [RegexHandler('^Today$',
+                                    add_today_task, pass_user_data=True),
+                       RegexHandler('^Tomorrow$',
+                                    add_tomorrow_task, pass_user_data=True),
+                       RegexHandler('^Custom$',
+                                    add_custom_task, pass_user_data=False),
                        RegexHandler('^Cancel$',
                                     cancel, pass_user_data=False),
                        MessageHandler(Filters.text,
-                                      error_message,
-                                      pass_user_data=False
-                                      ),
+                                      error_message, pass_user_data=False),
                        ],
             GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
-                                                   get_date_and_time,
-                                                   pass_user_data=True
-                                                   ),
+                                                   get_date_and_time, pass_user_data=True)
                                     ],
+            GETTING_TIME: [MessageHandler(Filters.text,
+                                          get_time, pass_user_data=True),
+                           ],
             GETTING_TASK_TEXT: [MessageHandler(Filters.text,
-                                               get_task_text,
-                                               pass_user_data=True,
-                                               ),
+                                               get_task_text, pass_user_data=True,)
                                 ],
-            GETTING_TARGET: [MessageHandler(Filters.text,
-                                            get_target_text,
-                                            pass_user_data=False
-                                            ),
-                             ],
         },
-
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
-    show_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('show', show_cmd)],
+    dp = updater.dispatcher
 
+
+    target_handler = ConversationHandler(
+        entry_points=[CommandHandler('target', add_target)],
+        states={
+            GETTING_TARGET: [MessageHandler(Filters.text,
+                                            get_target_text, pass_user_data=False),
+                             ],
+        },
+        fallbacks=[RegexHandler('^Cancel$', cancel)]
+    )
+
+    show_handler = ConversationHandler(
+        entry_points=[CommandHandler('show', show_cmd)],
         states={
             CHOOSING: [RegexHandler('^Show Tasks$',
                                     show_task, pass_user_data=False),
                        RegexHandler('^Show Targets$',
                                     show_target, pass_user_data=False),
                        ],
-
         },
-
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
 
-    dp.add_handler(show_conv_handler)
-    dp.add_handler(add_conv_handler)
+    gmt_handler = ConversationHandler(
+        entry_points=[CommandHandler('GMT', change_gmt_cmd)],
+        states={
+            CHOOSING:   [RegexHandler('^Change$',
+                                      get_new_gmt, pass_user_data=False),
+                         ],
+            CHANGE:     [MessageHandler(Filters.text,
+                                         change_gmt,),
+                         ],
+        },
+        fallbacks=[RegexHandler('^Cancel$', cancel)]
+    )
+
+    dp.add_handler(show_handler)
+    dp.add_handler(task_handler)
+    dp.add_handler(target_handler)
+    dp.add_handler(gmt_handler)
     dp.add_handler(CommandHandler("start", start_cmd))
     dp.add_handler(CommandHandler("help", help_cmd))
 
