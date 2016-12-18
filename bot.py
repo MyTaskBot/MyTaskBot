@@ -204,7 +204,7 @@ def get_target_text(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     check_user(update, user_id)
-    target = Target(update.message.text)
+    target = Target(user_id=user_id, text=update.message.text)
     db.add_target(user_id, target)
     update.message.reply_text("OK, I will memorise it")
     return end_conversation()
