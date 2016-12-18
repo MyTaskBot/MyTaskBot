@@ -95,7 +95,7 @@ class Database():
 
 
     def get_target(self, user_id):
-        sql = """SELECT text, id FROM public."Target" WHERE user_t = %s AND is_deleted = 0;"""
+        sql = """SELECT text, id FROM public."Target" WHERE user_t = %s AND is_deleted = 0 AND is_done = 0;"""
         conn = None
         list = []
         try:
@@ -149,7 +149,7 @@ class Database():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (target.id, target.user,))
+            cur.execute(sql, (target.id, target.user_id,))
             id = cur.fetchone()
             conn.commit()
             cur.close()
@@ -242,7 +242,7 @@ class Database():
                 conn.close()
 
     def get_all_users(self):
-        sql = """SELECT name, chat_id, user_id, name, gmt FROM public."User" """
+        sql = """SELECT name, chat_id, user_id, gmt FROM public."User" """
         conn = None
         users = dict()
         try:
@@ -252,7 +252,12 @@ class Database():
             cur.execute(sql)
             rows = cur.fetchall()
             for row in rows:
-                users[row[2]] = User(row[0], row[1], row[2], row[3])
+                users[row[2]] = User(
+                    name=row[0],
+                    chat_id=row[1],
+                    user_id=row[2],
+                    gmt=row[3],
+                )
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)

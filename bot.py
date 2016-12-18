@@ -59,11 +59,22 @@ def end_conversation():
     log.info("Exiting conversation handler")
     return ConversationHandler.END
 
+#Constants
+CHOOSING = 1
+GETTING_DATE_AND_TIME = 2
+GETTING_TASK_TEXT = 3
+GETTING_TARGET = 4
+CHANGE = 5
+GETTING_TIME = 6
+CHOOSING_TASK_ACTION = 7
+CHOOSING_TARGET_ACTION = 8
+TASK_TO_DELETE = 9
+TASK_TO_DONE = 10
+TARGET_TO_DELETE = 11
+TARGET_TO_DONE = 12
 
-CHOOSING, GETTING_DATE_AND_TIME, GETTING_TASK_TEXT, GETTING_TARGET, CHANGE, GETTING_TIME = range(1, 7)
-
-#add_reply_keyboard = [['Task', 'Target'], ['Cancel']]
-#add_markup = ReplyKeyboardMarkup(add_reply_keyboard, one_time_keyboard=True)
+show_choose_reply_keyboard = [['Delete', 'Make done'], ['Ok']]
+show_choose_markup = ReplyKeyboardMarkup(show_choose_reply_keyboard, one_time_keyboard=True)
 
 task_reply_keyboard = [["Today", "Tomorrow"], ["Custom"], ['Cancel']]
 task_markup = ReplyKeyboardMarkup(task_reply_keyboard, one_time_keyboard=True)
@@ -71,8 +82,8 @@ task_markup = ReplyKeyboardMarkup(task_reply_keyboard, one_time_keyboard=True)
 show_reply_keyboard = [['Show Tasks', 'Show Targets'], ['Cancel']]
 show_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
 
-show_reply_keyboard = [['Change','Cancel']]
-gmt_markup = ReplyKeyboardMarkup(show_reply_keyboard, one_time_keyboard=True)
+gmt_reply_keyboard = [['Change','Cancel']]
+gmt_markup = ReplyKeyboardMarkup(gmt_reply_keyboard, one_time_keyboard=True)
 
 
 db = Database()
@@ -108,7 +119,12 @@ def start_cmd(bot, update):
 def help_cmd(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input command: " + "/help")
-    update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
+    update.message.reply_text('---Help---\n '
+                              '/task - to add new Task\n '
+                              '/target - to add new Target\n'
+                              '/show - to see your Tasks or Targets and do operations with them(done del)\n'
+                              '/GMT - to change your time zone\n'
+                              )
 
 
 @logger_decorator
@@ -123,8 +139,8 @@ def show_cmd(bot, update):
     log.info("user with id: " + str(user_id) + " Starting conversation handler")
     update.message.reply_text(
         "What do you want me to show?",
-        reply_markup=show_markup)
-
+        reply_markup=show_markup
+    )
     return CHOOSING
 
 
@@ -329,8 +345,7 @@ def get_target_text(bot, update):
 
 
 @logger_decorator
-def show_task(bot, update):
-    assert bot is not None, "bot is None!"
+def show_task(bot, update, user_data):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     msg = '{icon} You tasks, {user_name} {last_name}!'.format(
@@ -338,30 +353,95 @@ def show_task(bot, update):
         user_name=update.message.from_user.first_name,
         last_name=update.message.from_user.last_name
     )
-    user = db.is_user(user_id)
-    if user:
-        tasks = db.get_tasks(user_id)
-        if len(tasks) == 0:
-            msg += '\n You haven\'t got Tasks!'
-        else:
-            i = 0
-            for task in tasks:
-                i += 1
-                msg += '\n {ind}: {data} - {text}'.format(
-                    ind=i,
-                    data=from_gmt0(task.datetime, users[user_id].gmt).strftime('%d.%m.%Y %H:%M'),
-                    text=task.text
-                )
+    check_user(update, user_id)
+    tasks = db.get_tasks(user_id)
+    user_data["list"] = list()
+    if len(tasks) == 0:
+        msg += '\n You haven\'t got Tasks!'
+        update.message.reply_text(msg)
+        return end_conversation()
     else:
-        log.error("user with id: " + str(user_id) + " is not found")
-        msg += "\n ERROR, user found"
-    update.message.reply_text(msg)
+        i = 0
+        for task in tasks:
+            user_data["list"].append(task)
+            i += 1
+            msg += '\n {ind}: {data} - {text}'.format(
+                ind=i,
+                data=from_gmt0(task.datetime, users[user_id].gmt).strftime('%d.%m.%Y %H:%M'),
+                text=task.text
+            )
+        update.message.reply_text(msg, reply_markup=show_choose_markup)
+    return CHOOSING_TASK_ACTION
+
+
+def check_number(update, text, data_list):
+    try:
+        n = int(text)
+    except ValueError:
+        update.message.reply_text(
+            "You made a mistake, please try again\n\n"
+            "Input number of task, that you want to delete\n"
+            "(0 - to exit)"
+        )
+        return -1
+    if n == 0:
+        return 0
+    if n < 1 or n > len(data_list):
+        update.message.reply_text(
+            "No such number, please try again\n\n"
+            "Input number of task, that you want to delete\n"
+            "(0 - to exit)"
+        )
+        return -1
+    return n
+
+
+@logger_decorator
+def delete_task_message(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text("Input number of task, that you want to delete\n (0 - to exit)")
+    return TASK_TO_DELETE
+
+
+@logger_decorator
+def make_task_done_message(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text("Input number of task, that you want make done\n (0 - to exit)")
+    return TASK_TO_DONE
+
+
+@logger_decorator
+def make_task_done(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    n = check_number(update=update, text=update.message.text, data_list=user_data["list"])
+    if n == -1:
+        return TASK_TO_DONE
+    if n == 0:
+        return end_conversation()
+    db.done_task(user_data["list"][n-1])
+    update.message.reply_text("Task marked as done")
     return end_conversation()
 
 
 @logger_decorator
-def show_target(bot, update):
-    assert bot is not None, "bot is None!"
+def delete_task(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    n = check_number(update=update, text=update.message.text, data_list=user_data["list"])
+    if n == -1:
+        return TASK_TO_DELETE
+    if n == 0:
+        return end_conversation()
+    db.remove_task(user_data["list"][n-1])
+    update.message.reply_text("Task deleted")
+    return end_conversation()
+
+
+@logger_decorator
+def show_target(bot, update, user_data):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     msg = '{icon} You targets, {user_name} {last_name}!'.format(
@@ -370,25 +450,70 @@ def show_target(bot, update):
         last_name=update.message.from_user.last_name
     )
 
-    user = db.is_user(user_id)
-    if user:
-        targets = db.get_target(user_id)
-        if len(targets) == 0:
-            msg += '\n You haven\'t got Targets!'
-        else:
-            i = 0
-            for target in targets:
-                i += 1
-                msg += '\n {ind}: {text}'.format(
-                    ind=i,
-                    text=target.text
-                )
+    check_user(update, user_id)
+    targets = db.get_target(user_id)
+    user_data["list"] = list()
+    if len(targets) == 0:
+        msg += '\n You haven\'t got Targets!'
+        update.message.reply_text(msg)
+        return end_conversation()
     else:
-        log.error("user with id: " + str(user_id) + " is not found")
-        msg += "\n ERROR, user found"
+        i = 0
+        for target in targets:
+            user_data["list"].append(target)
+            i += 1
+            msg += '\n {ind}: {text}'.format(
+                ind=i,
+                text=target.text
+            )
+    update.message.reply_text(msg, reply_markup=show_choose_markup)
+    return CHOOSING_TARGET_ACTION
 
-    update.message.reply_text(msg)
+
+@logger_decorator
+def delete_target_message(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text("Input number of target, that you want to delete\n (0 - to exit)")
+    return TARGET_TO_DELETE
+
+
+@logger_decorator
+def make_target_done_message(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    update.message.reply_text("Input number of target, that you want make done\n (0 - to exit)")
+    return TARGET_TO_DONE
+
+
+@logger_decorator
+def make_target_done(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    n = check_number(update=update, text=update.message.text, data_list=user_data["list"])
+    if n == -1:
+        return TARGET_TO_DONE
+    if n == 0:
+        return end_conversation()
+    db.done_target(user_data["list"][n-1])
+    update.message.reply_text("Target marked as done")
     return end_conversation()
+
+
+@logger_decorator
+def delete_target(bot, update, user_data):
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
+    n = check_number(update=update, text=update.message.text, data_list=user_data["list"])
+    if n == -1:
+        return TARGET_TO_DELETE
+    if n == 0:
+        return end_conversation()
+    db.remove_target(user_data["list"][n-1])
+    update.message.reply_text("Target deleted")
+    return end_conversation()
+
+
 
 
 @logger_decorator
@@ -446,38 +571,33 @@ def main():
     task_handler = ConversationHandler(
         entry_points=[CommandHandler('task', add_task)],
         states={
-            CHOOSING: [RegexHandler('^Today$',
-                                    add_today_task, pass_user_data=True),
-                       RegexHandler('^Tomorrow$',
-                                    add_tomorrow_task, pass_user_data=True),
-                       RegexHandler('^Custom$',
-                                    add_custom_task, pass_user_data=False),
-                       RegexHandler('^Cancel$',
-                                    cancel, pass_user_data=False),
-                       MessageHandler(Filters.text,
-                                      error_message, pass_user_data=False),
-                       ],
-            GETTING_DATE_AND_TIME: [MessageHandler(Filters.text,
-                                                   get_date_and_time, pass_user_data=True)
-                                    ],
-            GETTING_TIME: [MessageHandler(Filters.text,
-                                          get_time, pass_user_data=True),
-                           ],
-            GETTING_TASK_TEXT: [MessageHandler(Filters.text,
-                                               get_task_text, pass_user_data=True,)
-                                ],
+            CHOOSING: [
+                RegexHandler('^Today$', add_today_task, pass_user_data=True),
+                RegexHandler('^Tomorrow$', add_tomorrow_task, pass_user_data=True),
+                RegexHandler('^Custom$', add_custom_task, pass_user_data=False),
+                RegexHandler('^Cancel$', cancel, pass_user_data=False),
+                MessageHandler(Filters.text, error_message, pass_user_data=False),
+            ],
+            GETTING_DATE_AND_TIME: [
+                MessageHandler(Filters.text, get_date_and_time, pass_user_data=True)
+            ],
+            GETTING_TIME: [
+                MessageHandler(Filters.text, get_time, pass_user_data=True),
+            ],
+            GETTING_TASK_TEXT: [
+                MessageHandler(Filters.text, get_task_text, pass_user_data=True,)
+            ],
         },
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
     dp = updater.dispatcher
 
-
     target_handler = ConversationHandler(
         entry_points=[CommandHandler('target', add_target)],
         states={
-            GETTING_TARGET: [MessageHandler(Filters.text,
-                                            get_target_text, pass_user_data=False),
-                             ],
+            GETTING_TARGET: [
+                MessageHandler(Filters.text, get_target_text, pass_user_data=False),
+            ],
         },
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
@@ -485,24 +605,49 @@ def main():
     show_handler = ConversationHandler(
         entry_points=[CommandHandler('show', show_cmd)],
         states={
-            CHOOSING: [RegexHandler('^Show Tasks$',
-                                    show_task, pass_user_data=False),
-                       RegexHandler('^Show Targets$',
-                                    show_target, pass_user_data=False),
-                       ],
+            CHOOSING: [
+                RegexHandler('^Show Tasks$', show_task, pass_user_data=True),
+                RegexHandler('^Show Targets$', show_target, pass_user_data=True),
+            ],
+            CHOOSING_TARGET_ACTION: [
+                RegexHandler('^Delete$', delete_target_message, pass_user_data=True),
+                RegexHandler('^Make done$', make_target_done_message, pass_user_data=True),
+            ],
+            CHOOSING_TASK_ACTION: [
+                RegexHandler('^Delete$', delete_task_message, pass_user_data=True),
+                RegexHandler('^Make done$', make_task_done_message, pass_user_data=True),
+            ],
+            TASK_TO_DELETE: [
+                MessageHandler(Filters.text, delete_task, pass_user_data=True, )
+                            ],
+            TASK_TO_DONE: [
+                MessageHandler(Filters.text, make_task_done, pass_user_data=True, )
+            ],
+            TARGET_TO_DELETE: [
+                MessageHandler(Filters.text, delete_target, pass_user_data=True, )
+                            ],
+            TARGET_TO_DONE: [
+                MessageHandler(Filters.text, make_target_done, pass_user_data=True, )
+            ],
+
+
+
         },
-        fallbacks=[RegexHandler('^Cancel$', cancel)]
+        fallbacks=[
+            RegexHandler('^Cancel$', cancel),
+            RegexHandler('^Ok', cancel),
+        ]
     )
 
     gmt_handler = ConversationHandler(
         entry_points=[CommandHandler('GMT', change_gmt_cmd)],
         states={
-            CHOOSING:   [RegexHandler('^Change$',
-                                      get_new_gmt, pass_user_data=False),
-                         ],
-            CHANGE:     [MessageHandler(Filters.text,
-                                         change_gmt,),
-                         ],
+            CHOOSING: [
+                RegexHandler('^Change$', get_new_gmt, pass_user_data=False)
+            ],
+            CHANGE: [
+                MessageHandler(Filters.text, change_gmt,),
+            ],
         },
         fallbacks=[RegexHandler('^Cancel$', cancel)]
     )
