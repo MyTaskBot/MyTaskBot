@@ -79,7 +79,8 @@ CREATE TABLE "Target" (
     text character varying(1000),
     list integer,
     user_t integer,
-    is_deleted smallint DEFAULT 0
+    is_deleted smallint DEFAULT 0,
+    is_done smallint
 );
 
 
@@ -137,9 +138,10 @@ ALTER TABLE public.user_id_seq OWNER TO postgres;
 
 CREATE TABLE "User" (
     id integer DEFAULT nextval('user_id_seq'::regclass) NOT NULL,
-    chat integer,
+    chat_id integer,
     name character varying(255),
-    user_id smallint
+    user_id integer,
+    gmt smallint
 );
 
 
@@ -157,16 +159,9 @@ COPY "List" (id, name, "user") FROM stdin;
 -- Data for Name: Target; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY "Target" (id, text, list, user_t, is_deleted) FROM stdin;
-2731403	sdds	\N	\N	0
-1	Ggfty	\N	273143403	0
-2	Dtudf	\N	273143403	0
-3	Dhdg	\N	273143403	0
-4	тестовое1	\N	32208604	0
-5	12344	\N	32208604	0
-6	43343	\N	32208604	0
-7	7889999	\N	32208604	0
-8	цель!	\N	206759060	0
+COPY "Target" (id, text, list, user_t, is_deleted, is_done) FROM stdin;
+19	555	\N	32208604	0	\N
+20	19.12.16 12:24	\N	32208604	0	\N
 \.
 
 
@@ -175,10 +170,6 @@ COPY "Target" (id, text, list, user_t, is_deleted) FROM stdin;
 --
 
 COPY "Task" (id, list, user_t, text, "time", repeat, is_done, is_deleted) FROM stdin;
-1	\N	32208604	test1	2016-12-04 23:15:00	\N	0	0
-2	\N	32208604	test2	2016-12-04 23:19:00	\N	0	0
-3	\N	206759060	сделать то-то и то-то	2016-12-12 04:20:00	\N	0	0
-4	\N	206759060	таск	2016-12-05 01:15:00	\N	0	0
 \.
 
 
@@ -186,11 +177,9 @@ COPY "Task" (id, list, user_t, text, "time", repeat, is_done, is_deleted) FROM s
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY "User" (id, chat, name, user_id) FROM stdin;
-1	13	igor	\N
-2	32208604	Igor	\N
-4	273143403	Svyatoslav	\N
-5	206759060	Serebrennikova	\N
+COPY "User" (id, chat_id, name, user_id, gmt) FROM stdin;
+7	32208604	Igor	32208604	\N
+8	32208604	Igor	32208604	\N
 \.
 
 
@@ -205,21 +194,21 @@ SELECT pg_catalog.setval('list_id_seq', 1, false);
 -- Name: target_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('target_id_seq', 8, true);
+SELECT pg_catalog.setval('target_id_seq', 20, true);
 
 
 --
 -- Name: task_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('task_id_seq', 4, true);
+SELECT pg_catalog.setval('task_id_seq', 10, true);
 
 
 --
 -- Name: user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('user_id_seq', 5, true);
+SELECT pg_catalog.setval('user_id_seq', 8, true);
 
 
 --

@@ -7,8 +7,8 @@ class Database():
 
 
     def register_user(self, user):
-        sql = """INSERT INTO public."User"(user_id, chat_id, name)
-                 VALUES(%s, %s, %s) RETURNING chat_id;"""
+        sql = """INSERT INTO public."User"(user_id, chat_id, name, gmt)
+                 VALUES(%s, %s, %s, %s) RETURNING chat_id;"""
         conn = None
         chat_id = None
         try:
@@ -16,7 +16,7 @@ class Database():
             # connect to the PostgreSQL database
             conn = psycopg2.connect(**params)
             cur = conn.cursor()
-            cur.execute(sql, (user.user_id, user.chat_id, user.name,))
+            cur.execute(sql, (user.user_id, user.chat_id, user.name, user.gmt))
             # get the generated id back
             chat_id = cur.fetchone()[0]
             conn.commit()
