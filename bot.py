@@ -73,7 +73,7 @@ TASK_TO_DONE = 10
 TARGET_TO_DELETE = 11
 TARGET_TO_DONE = 12
 
-show_choose_reply_keyboard = [['Delete', 'Make done'], ['Ok']]
+show_choose_reply_keyboard = [['Delete', 'Make done'], ['Exit']]
 show_choose_markup = ReplyKeyboardMarkup(show_choose_reply_keyboard, one_time_keyboard=True)
 
 task_reply_keyboard = [["Today", "Tomorrow"], ["Custom"], ['Cancel']]
@@ -119,8 +119,8 @@ def start_cmd(bot, update):
 def help_cmd(bot, update):
     user_id = update.message.from_user.id
     log.info("user with id: " + str(user_id) + " input command: " + "/help")
-    update.message.reply_text('---Help---\n '
-                              '/task - to add new Task\n '
+    update.message.reply_text('---Help---\n'
+                              '/task - to add new Task\n'
                               '/target - to add new Target\n'
                               '/show - to see your Tasks or Targets and do operations with them(done del)\n'
                               '/GMT - to change your time zone\n'
@@ -635,7 +635,7 @@ def main():
         },
         fallbacks=[
             RegexHandler('^Cancel$', cancel),
-            RegexHandler('^Ok', cancel),
+            RegexHandler('^Exit', cancel),
         ]
     )
 
