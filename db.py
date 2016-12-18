@@ -97,7 +97,7 @@ class Database():
 
 
     def get_target(self, user_id):
-        sql = """SELECT text FROM public."Target" as t JOIN public."User" as u ON t.user_t = u.user_id WHERE u.user_id = %s AND t.is_deleted = 0;"""
+        sql = """SELECT text, id FROM public."Target" WHERE user_t = %s AND is_deleted = 0;"""
         conn = None
         list = []
         try:
@@ -107,7 +107,7 @@ class Database():
             cur.execute(sql, (user_id,))
             rows = cur.fetchall()
             for row in rows:
-                list.append(Target(row[0]))
+                list.append(Target(text = row[0], user_id = user_id, t_id = row[1]))
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -117,7 +117,7 @@ class Database():
         return list
 
     def get_tasks(self, user_id):
-            sql = """SELECT time, text FROM public."Task" as t JOIN public."User" as u ON t.user_t = u.user_id WHERE u.user_id = %s AND t.is_deleted = 0 AND is_done = 0"""
+            sql = """SELECT time, text, id FROM public."Task" WHERE user_t = %s AND is_deleted = 0 AND is_done = 0;"""
             conn = None
             list = []
             try:
@@ -127,7 +127,7 @@ class Database():
                 cur.execute(sql, (user_id,))
                 rows = cur.fetchall()
                 for row in rows:
-                    list.append(Task(row[0], row[1]))
+                    list.append(Task(user_id = user_id, dtime= row[0], text = row[1], t_id = row[2]))
                 cur.close()
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
