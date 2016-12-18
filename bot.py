@@ -88,7 +88,8 @@ def check_user(update, user_id):
 
 @logger_decorator
 def start_cmd(bot, update):
-    log.info("user input command: " + "/start")
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input command: " + "/start")
     user_id = update.message.from_user.id
     check_user(update, user_id)
     update.message.reply_text('Hi! Use /help to get help')
@@ -96,7 +97,8 @@ def start_cmd(bot, update):
 
 @logger_decorator
 def help_cmd(bot, update):
-    log.info("user input command: " + "/help")
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input command: " + "/help")
     update.message.reply_text('---Help---\n /add - to add new Task or Target\n /show - to see your Tasks or Targets\n')
 
 
@@ -107,8 +109,9 @@ def alarm(bot, job):
 
 @logger_decorator
 def add_cmd(bot, update):
-    log.info("user input command: " + "/add")
-    log.info("Start conversation handler")
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input command: " + "/add")
+    log.info("user with id: " + str(user_id) + " Starting conversation handler")
     update.message.reply_text(
         "What do you want to add?",
         reply_markup=add_markup)
@@ -118,8 +121,9 @@ def add_cmd(bot, update):
 
 @logger_decorator
 def show_cmd(bot, update):
-    log.info("user input command: " + "/show")
-    log.info("Start conversation handler")
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input command: " + "/show")
+    log.info("user with id: " + str(user_id) + " Starting conversation handler")
     update.message.reply_text(
         "What do you want me to show?",
         reply_markup=show_markup)
@@ -129,7 +133,8 @@ def show_cmd(bot, update):
 
 @logger_decorator
 def add_task(bot, update):
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     update.message.reply_text(
         "Write date and time of Task in form DD.MM.YY HH:MM\n"
         "for example 12.12.16 4:20"
@@ -140,13 +145,14 @@ def add_task(bot, update):
 @logger_decorator
 def get_date_and_time(bot, update, user_data):
     task = Task()
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     if update.message.text == 'Cancel':
         return end_conversation()
     try:
         task.set_date_and_time(update.message.text)
     except NameError:
-        log.info("User make a mistake")
+        log.info("user with id: " + str(user_id) + " make a mistake")
         update.message.reply_text(
             "You made a mistake, please try again\n\n"
             "Write date and time of Task in form DD.MM.YY HH:MM\n"
@@ -170,10 +176,10 @@ def get_date_and_time(bot, update, user_data):
 
 @logger_decorator
 def get_task_text(bot, update, user_data):
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     task = user_data['task']
     task.set_text(update.message.text)
-    user_id = update.message.from_user.id
     check_user(update, user_id)
     db.add_task(user_id, task)
     user_data.clear()
@@ -183,7 +189,8 @@ def get_task_text(bot, update, user_data):
 
 @logger_decorator
 def add_target(bot, update):
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     assert bot is not None, "bot is None!"
     update.message.reply_text(
         "Give me yout Target"
@@ -194,8 +201,8 @@ def add_target(bot, update):
 @logger_decorator
 def get_target_text(bot, update):
     assert bot is not None, "bot is None!"
-    log.info("user input text: " + update.message.text)
     user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     check_user(update, user_id)
     target = Target(update.message.text)
     db.add_target(user_id, target)
@@ -206,13 +213,13 @@ def get_target_text(bot, update):
 @logger_decorator
 def show_task(bot, update):
     assert bot is not None, "bot is None!"
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     msg = '{icon} You tasks, {user_name} {last_name}!'.format(
         icon='\U000023F0',
         user_name=update.message.from_user.first_name,
         last_name=update.message.from_user.last_name
     )
-    user_id = update.message.from_user.id
     user = db.is_user(user_id)
     if user:
         tasks = db.get_tasks(user_id)
@@ -228,10 +235,8 @@ def show_task(bot, update):
                     text=task.text
                 )
     else:
-        log.error("user with id:" + user_id + "is not found")
-        msg += "\n FATAL ERROR, admin not found "
-
-
+        log.error("user with id: " + str(user_id) + " is not found")
+        msg += "\n ERROR, user found"
     update.message.reply_text(msg)
     return end_conversation()
 
@@ -239,13 +244,13 @@ def show_task(bot, update):
 @logger_decorator
 def show_target(bot, update):
     assert bot is not None, "bot is None!"
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     msg = '{icon} You targets, {user_name} {last_name}!'.format(
         icon='\U000023F3',
         user_name=update.message.from_user.first_name,
         last_name=update.message.from_user.last_name
     )
-    user_id = update.message.from_user.id
 
     user = db.is_user(user_id)
     if user:
@@ -261,8 +266,8 @@ def show_target(bot, update):
                     text=target.text
                 )
     else:
-        log.error("user with id:" + user_id + "is not found")
-        msg += "\n FATAL ERROR, admin not found "
+        log.error("user with id: " + str(user_id) + " is not found")
+        msg += "\n ERROR, user found"
 
     update.message.reply_text(msg)
     return end_conversation()
@@ -273,7 +278,8 @@ def cancel(bot, update):
     assert bot is not None, "bot is None!"
     assert update is not None, "update is not None!"
     # some text for user
-    log.info("user input text: " + update.message.text)
+    user_id = update.message.from_user.id
+    log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
     return end_conversation()
 
 
@@ -292,6 +298,7 @@ def error_message(bot, update):
 
 @logger_decorator
 def update(bot, job):
+    log.info(" starting update")
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
     tasks = db.get_recent_tasks(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:00'))
     print(tasks)
@@ -301,7 +308,7 @@ def update(bot, job):
         bot.sendMessage(user.chat_id, text=user.name + ", remind you about your task:\n" + task.text)
         print(task.id)
         db.done_task(task)
-
+    log.info("update finished")
 
 def main():
     global users
