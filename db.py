@@ -202,9 +202,47 @@ class Database():
                 conn.close()
         return id
 
+    def done_target(self, target):
+        sql = """UPDATE public."Target" SET is_done = 1 WHERE id = %s AND user_t = %s RETURNING id"""
+        conn = None
+        id = None
+        try:
+            params = config()
+            # connect to the PostgreSQL database
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (target.id, target.user_id,))
+            id = cur.fetchone()
+            conn.commit()
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        return id
+
+    def change_time_zone(self, user_id, gmt):
+        sql = """UPDATE public."User" SET gmt = %s WHERE user_id = %s;"""
+        conn = None
+        id = None
+        try:
+            params = config()
+            # connect to the PostgreSQL database
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute(sql, (gmt, user_id,))
+            id = cur.fetchone()
+            conn.commit()
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
 
     def get_all_users(self):
-        sql = """SELECT name, chat_id, user_id, name FROM public."User" """
+        sql = """SELECT name, chat_id, user_id, name, gmt FROM public."User" """
         conn = None
         users = dict()
         try:
@@ -214,7 +252,7 @@ class Database():
             cur.execute(sql)
             rows = cur.fetchall()
             for row in rows:
-                users[row[2]] = User(row[0], row[1], row[2])
+                users[row[2]] = User(row[0], row[1], row[2], row[3])
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
