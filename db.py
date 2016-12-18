@@ -127,7 +127,7 @@ class Database():
                 cur.execute(sql, (user_id,))
                 rows = cur.fetchall()
                 for row in rows:
-                    list.append(Task(user_id = user_id, dtime= row[0], text = row[1], t_id = row[2]))
+                    list.append(Task(user_id}} = user_id, dtime= row[0], text = row[1], t_id = row[2]))
                 cur.close()
             except (Exception, psycopg2.DatabaseError) as error:
                 print(error)
@@ -212,9 +212,6 @@ class Database():
             rows = cur.fetchall()
             print(rows)
             for row in rows:
-                print(row[0])
-                print(row[1])
-                print(row[2])
                 users[row[2]] = User(row[0], row[1], row[2])
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
