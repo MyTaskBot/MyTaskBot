@@ -311,6 +311,13 @@ def get_task_text(bot, update, user_data):
     log.info("user with id: " + str(user_id) + " input text: " + update.message.text)
 
     date_time = user_data['dtime']
+    if date_time < datetime.datetime.now():
+        update.message.reply_text(
+            'Sorry we can not go back to future!\n\n'
+            'Write date and time of Task in form DD.MM.YY HH:MM\n'
+            'for example 12.12.16 4:20'
+        )
+        return GETTING_DATE_AND_TIME
     task = Task(
         user_id=user_id,
         text=update.message.text,
@@ -367,7 +374,7 @@ def show_task(bot, update, user_data):
             i += 1
             msg += '\n {ind}: {data} - {text}'.format(
                 ind=i,
-                data=from_gmt0(task.datetime, users[user_id].gmt).strftime('%d.%m.%Y %H:%M'),
+                data=from_gmt0(task.datetime, users[user_id].gmt).strftime('%d.%m.%y  %H:%M'),
                 text=task.text
             )
         update.message.reply_text(msg, reply_markup=show_choose_markup)
@@ -608,14 +615,17 @@ def main():
             CHOOSING: [
                 RegexHandler('^Show Tasks$', show_task, pass_user_data=True),
                 RegexHandler('^Show Targets$', show_target, pass_user_data=True),
+                MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             CHOOSING_TARGET_ACTION: [
                 RegexHandler('^Delete$', delete_target_message, pass_user_data=True),
                 RegexHandler('^Make done$', make_target_done_message, pass_user_data=True),
+                MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             CHOOSING_TASK_ACTION: [
                 RegexHandler('^Delete$', delete_task_message, pass_user_data=True),
                 RegexHandler('^Make done$', make_task_done_message, pass_user_data=True),
+                MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             TASK_TO_DELETE: [
                 MessageHandler(Filters.text, delete_task, pass_user_data=True, )
