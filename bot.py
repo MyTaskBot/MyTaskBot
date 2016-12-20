@@ -621,11 +621,13 @@ def main():
             CHOOSING_TARGET_ACTION: [
                 RegexHandler('^Delete$', delete_target_message, pass_user_data=True),
                 RegexHandler('^Make done$', make_target_done_message, pass_user_data=True),
+                RegexHandler('^Exit$', cancel, pass_user_data=False),
                 MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             CHOOSING_TASK_ACTION: [
                 RegexHandler('^Delete$', delete_task_message, pass_user_data=True),
                 RegexHandler('^Make done$', make_task_done_message, pass_user_data=True),
+                RegexHandler('^Exit$', cancel, pass_user_data=False),
                 MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             TASK_TO_DELETE: [
@@ -640,9 +642,6 @@ def main():
             TARGET_TO_DONE: [
                 MessageHandler(Filters.text, make_target_done, pass_user_data=True, )
             ],
-
-
-
         },
         fallbacks=[
             RegexHandler('^Cancel$', cancel),
@@ -654,7 +653,7 @@ def main():
         entry_points=[CommandHandler('GMT', change_gmt_cmd)],
         states={
             CHOOSING: [
-                RegexHandler('^Change$', get_new_gmt, pass_user_data=False)
+                RegexHandler('^Change$', get_new_gmt, pass_user_data=False),
             ],
             CHANGE: [
                 MessageHandler(Filters.text, change_gmt,),
