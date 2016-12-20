@@ -615,6 +615,7 @@ def main():
             CHOOSING: [
                 RegexHandler('^Show Tasks$', show_task, pass_user_data=True),
                 RegexHandler('^Show Targets$', show_target, pass_user_data=True),
+                RegexHandler('^Cancel$', cancel, pass_user_data=False),
                 MessageHandler(Filters.text, error_message, pass_user_data=False),
             ],
             CHOOSING_TARGET_ACTION: [
